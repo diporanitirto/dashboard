@@ -53,6 +53,3 @@ src/
 - Contoh policy pada `supabase-setup.sql` mengizinkan akses penuh untuk user authenticated. Sesuaikan sebelum production.
 - Jika memerlukan akses publik (tanpa login), aktifkan policy opsional yang disediakan hanya untuk testing.
 
-## Terinspirasi Dari
-- Template pada folder `template/nextjs-admin-dashboard-main` dipakai sebagai referensi styling kartu dan layout.
-

@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dashboard Izin DIPORANI
 
-## Getting Started
+Dashboard visual untuk memantau dan mengelola izin siswa DIPORANI kelas X1–X8. Halaman ini menyajikan ringkasan status, distribusi kelas, daftar izin terkini, serta aksi approve/hapus dalam satu tampilan elegan.
 
-First, run the development server:
+## Fitur Utama
+- Ringkasan metrik (total izin, pending, approved, persentase approval)
+- Filter status, kelas, dan pencarian kata kunci
+- Tabel interaktif dengan aksi approve dan hapus
+- Distribusi izin per kelas dengan bar progress
+- Panel aktivitas terbaru berisi 5 pengajuan terakhir
+- Integrasi penuh dengan Supabase
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Setup Cepat
+1. **Install dependencies**
+	```bash
+	npm install
+	```
+2. **Konfigurasi environment Supabase** di `.env.local`
+	```env
+	NEXT_PUBLIC_SUPABASE_URL=your-project-url
+	NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+	```
+3. **Siapkan database** lewat Supabase SQL Editor dengan menjalankan `supabase-setup.sql`.
+4. **Jalankan development server**
+	```bash
+	npm run dev
+	```
+5. Akses dashboard di `http://localhost:3000`.
+
+## Struktur Utama
+```
+src/
+ ├─ app/
+ │   ├─ api/izin/           # Endpoint GET/PATCH/DELETE ke Supabase
+ │   ├─ page.tsx            # Halaman dashboard
+ │   └─ globals.css
+ ├─ components/
+ │   ├─ ClassDistribution.tsx
+ │   ├─ IzinTable.tsx
+ │   ├─ RecentActivity.tsx
+ │   ├─ StatusBadge.tsx
+ │   └─ SummaryCards.tsx
+ └─ lib/
+	  └─ supabase.ts         # Inisialisasi client Supabase
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Alur Data
+1. Form izin (aplikasi terpisah) menyimpan data ke tabel `izin` di Supabase.
+2. Dashboard mengambil data melalui endpoint `/api/izin`.
+3. Aksi approve/hapus di dashboard memanggil endpoint PATCH/DELETE yang meneruskan perubahan ke Supabase.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Catatan Keamanan
+- Contoh policy pada `supabase-setup.sql` mengizinkan akses penuh untuk user authenticated. Sesuaikan sebelum production.
+- Jika memerlukan akses publik (tanpa login), aktifkan policy opsional yang disediakan hanya untuk testing.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Terinspirasi Dari
+- Template pada folder `template/nextjs-admin-dashboard-main` dipakai sebagai referensi styling kartu dan layout.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

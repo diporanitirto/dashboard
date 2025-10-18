@@ -27,7 +27,7 @@ const ensureAdminAuthorized = (request: Request) => {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = ensureAdminAuthorized(request);
@@ -35,7 +35,7 @@ export async function PATCH(
       return NextResponse.json({ error: auth.message }, { status: auth.status });
     }
 
-    const { id } = params;
+    const { id } = await context.params;
 
     const { data, error } = await supabaseAdmin
       .from('izin')
@@ -55,7 +55,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = ensureAdminAuthorized(request);
@@ -63,7 +63,7 @@ export async function DELETE(
       return NextResponse.json({ error: auth.message }, { status: auth.status });
     }
 
-    const { id } = params;
+    const { id } = await context.params;
     const { error } = await supabaseAdmin.from('izin').delete().eq('id', id);
 
     if (error) throw error;

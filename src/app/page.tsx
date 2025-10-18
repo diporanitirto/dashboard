@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type SVGProps } from 'react';
+import Link from 'next/link';
 import { Izin, supabase } from '@/lib/supabase';
 import { IzinTable } from '@/components/IzinTable';
 import { ClassDistribution } from '@/components/ClassDistribution';
@@ -32,6 +33,16 @@ const LockIcon = (props: SVGProps<SVGSVGElement>) => (
 	</svg>
 );
 
+const RefreshIcon = (props: SVGProps<SVGSVGElement>) => (
+	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+		<path
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			d="M4 4v5h5M20 20v-5h-5M5 9a7 7 0 0 1 11-5.45M19 15a7 7 0 0 1-11 5.45"
+		/>
+	</svg>
+);
+
 export default function Home() {
 	const [izinList, setIzinList] = useState<Izin[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -47,15 +58,53 @@ export default function Home() {
 	const [tokenError, setTokenError] = useState<string | null>(null);
 	const [tokenModalView, setTokenModalView] = useState<'activate' | 'manage' | 'error' | null>(null);
 
+	const verifyAdminToken = useCallback(async (token: string) => {
+		try {
+			const response = await fetch('/api/token/verify', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ token }),
+			});
+
+			if (response.status === 401) {
+				return { ok: false, message: 'Your token incorrect.' } as const;
+			}
+
+			if (!response.ok) {
+				const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+				return { ok: false, message: payload?.error ?? 'Gagal memverifikasi token.' } as const;
+			}
+
+			return { ok: true } as const;
+		} catch (error) {
+			console.error('verifyAdminToken error:', error);
+			return { ok: false, message: 'Tidak dapat terhubung ke server.' } as const;
+		}
+	}, []);
+
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
 		const storedToken = window.localStorage.getItem('dashboard-action-token');
-		if (storedToken) {
-			setTokenInput(storedToken);
-			setActionToken(storedToken);
-			setTokenValid(true);
-		}
-	}, []);
+		if (!storedToken) return;
+
+		verifyAdminToken(storedToken)
+			.then((result) => {
+				if (result.ok) {
+					setTokenInput(storedToken);
+					setActionToken(storedToken);
+					setTokenValid(true);
+					setTokenError(null);
+				} else {
+					window.localStorage.removeItem('dashboard-action-token');
+				}
+			})
+			.catch((error) => {
+				console.error('Stored token verification failed:', error);
+				window.localStorage.removeItem('dashboard-action-token');
+			});
+	}, [verifyAdminToken]);
 
 	const fetchIzin = useCallback(async () => {
 		const response = await fetch('/api/izin');
@@ -67,10 +116,19 @@ export default function Home() {
 		setIzinList(data);
 	}, []);
 
+	const runArchiveSweep = useCallback(async () => {
+		try {
+			await fetch('/api/archive', { method: 'POST' });
+		} catch (error) {
+			console.error('Archive sweep failed:', error);
+		}
+	}, []);
+
 	useEffect(() => {
 		const load = async () => {
 			try {
 				setLoading(true);
+				await runArchiveSweep();
 				await fetchIzin();
 			} catch (error) {
 				console.error(error);
@@ -80,7 +138,7 @@ export default function Home() {
 		};
 
 		load();
-	}, [fetchIzin]);
+	}, [fetchIzin, runArchiveSweep]);
 
 	useEffect(() => {
 		const channel = supabase
@@ -99,6 +157,7 @@ export default function Home() {
 	const handleRefresh = async () => {
 		try {
 			setRefreshing(true);
+			await runArchiveSweep();
 			await fetchIzin();
 		} catch (error) {
 			console.error(error);
@@ -133,12 +192,19 @@ export default function Home() {
 		}
 	};
 
-	const handleTokenSubmit = () => {
+	const handleTokenSubmit = async () => {
 		const trimmed = tokenInput.trim();
 		if (!trimmed) {
 			setTokenError('Token tidak boleh kosong.');
 			return;
 		}
+
+		const result = await verifyAdminToken(trimmed);
+		if (!result.ok) {
+			markTokenInvalid(result.message ?? 'Your token incorrect.');
+			return;
+		}
+
 		setTokenInput(trimmed);
 		setActionToken(trimmed);
 		setTokenValid(true);
@@ -181,7 +247,7 @@ export default function Home() {
 				},
 			});
 			if (response.status === 401) {
-				markTokenInvalid('Token salah, cek kembali.');
+				markTokenInvalid('Your token incorrect.');
 				return;
 			}
 			if (!response.ok) {
@@ -211,7 +277,7 @@ export default function Home() {
 				},
 			});
 			if (response.status === 401) {
-				markTokenInvalid('Token salah, cek kembali.');
+				markTokenInvalid('Your token incorrect.');
 				return;
 			}
 			if (!response.ok) {
@@ -356,9 +422,15 @@ export default function Home() {
 								<p>
 									Approved: <span className="font-semibold text-slate-800">{approvedCount}</span>
 								</p>
+								<Link
+									href="/arsip"
+									className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-slate-400 hover:text-slate-800"
+								>
+									Lihat Arsip Mingguan
+								</Link>
 							</div>
 						</div>
-					</section>
+						</section>
 
 					<section className="mt-10 grid gap-6 lg:grid-cols-[2fr_1fr]">
 						<div className="space-y-6">
@@ -425,9 +497,14 @@ export default function Home() {
 										<button
 											onClick={handleRefresh}
 											disabled={refreshing}
-											className="inline-flex w-full items-center justify-center rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+											aria-label="Segarkan data"
+											className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
 										>
-											{refreshing ? 'Memuat...' : 'Segarkan Data'}
+											{refreshing ? (
+												<RefreshIcon className="h-5 w-5 animate-[spin_0.8s_linear_infinite_reverse]" />
+											) : (
+												<RefreshIcon className="h-5 w-5" />
+											)}
 										</button>
 									</div>
 								</div>
@@ -478,9 +555,9 @@ export default function Home() {
 					<div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
 						{tokenModalView === 'activate' && (
 							<form
-								onSubmit={(event) => {
+								onSubmit={async (event) => {
 									event.preventDefault();
-									handleTokenSubmit();
+									await handleTokenSubmit();
 								}}
 								className="space-y-5"
 							>
@@ -560,9 +637,9 @@ export default function Home() {
 						)}
 						{tokenModalView === 'error' && (
 							<div className="space-y-5">
-								<h3 className="text-lg font-semibold text-slate-800">Token salah</h3>
+								<h3 className="text-lg font-semibold text-slate-800">Token Ditolak</h3>
 								<p className="text-sm text-slate-500">
-									{tokenError ?? 'Token salah, cek kembali.'}
+									{tokenError ?? 'Your token incorrect.'}
 								</p>
 								<div className="flex justify-end gap-2">
 									<button

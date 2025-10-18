@@ -18,3 +18,8 @@ export type Izin = {
   status: 'pending' | 'approved';
   created_at: string;
 };
+
+export type ArchivedIzin = Izin & {
+  archive_date: string;
+  archived_at: string;
+};

@@ -15,8 +15,17 @@ export type Izin = {
   absen: number;
   kelas: 'X1' | 'X2' | 'X3' | 'X4' | 'X5' | 'X6' | 'X7' | 'X8';
   alasan: string;
-  status: 'pending' | 'approved';
+  sangga?: string;
+  pk_kelas?: string;
+  nis?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  verified_by?: string | null;
+  verified_at?: string | null;
+  is_archived: boolean;
+  archive_date?: string | null;
+  archived_at?: string | null;
   created_at: string;
+  updated_at?: string;
 };
 
 export type ArchivedIzin = Izin & {

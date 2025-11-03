@@ -36,6 +36,14 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
             <p className="mt-3 text-sm text-slate-500">
               {item.alasan}
             </p>
+            {item.verified_by && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Diverifikasi oleh: <strong>{item.verified_by}</strong></span>
+              </div>
+            )}
             <p className="mt-3 text-xs text-slate-400">
               {new Intl.DateTimeFormat('id-ID', {
                 day: '2-digit',
@@ -98,6 +106,9 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               Waktu
             </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Verifikasi
+            </th>
             {canManage && (
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 text-right">
                 Aksi
@@ -128,6 +139,18 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
                   minute: '2-digit',
                 }).format(new Date(item.created_at))}
               </td>
+              <td className="px-4 py-4 text-slate-600">
+                {item.verified_by ? (
+                  <div className="flex items-center gap-1 text-xs text-blue-600">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-medium">{item.verified_by}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-400">-</span>
+                )}
+              </td>
               {canManage && (
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">
@@ -156,7 +179,7 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
           {data.length === 0 && (
             <tr>
               <td
-                colSpan={canManage ? 7 : 6}
+                colSpan={canManage ? 8 : 7}
                 className="px-4 py-12 text-center text-sm font-medium text-slate-500"
               >
                 Tidak ada data izin untuk ditampilkan.

@@ -36,10 +36,16 @@ export async function PATCH(
     }
 
     const { id } = await context.params;
+    const body = await request.json().catch(() => ({}));
+    const verifiedBy = body.verifiedBy || null;
 
     const { data, error } = await supabaseAdmin
       .from('izin')
-      .update({ status: 'approved' })
+      .update({ 
+        status: 'approved',
+        verified_by: verifiedBy,
+        verified_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .select()
       .single();

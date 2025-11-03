@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const showArchived = searchParams.get('archived') === 'true';
+
+    const { data, error } = await supabaseAdmin
       .from('izin')
       .select('*')
+      .eq('is_archived', showArchived)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

@@ -10,37 +10,25 @@ export async function POST() {
       return NextResponse.json({ archived: 0, skipped: true });
     }
 
-    const { data: candidates, error: selectError } = await supabaseAdmin
+    // Update izin dengan is_archived = true untuk data dalam range
+    const { data: updated, error: updateError } = await supabaseAdmin
       .from('izin')
-      .select('*')
+      .update({
+        is_archived: true,
+        archive_date: window.isoDate,
+        archived_at: new Date().toISOString(),
+      })
       .gte('created_at', window.rangeStartUtc)
-      .lte('created_at', window.rangeEndUtc);
+      .lte('created_at', window.rangeEndUtc)
+      .eq('is_archived', false)
+      .select();
 
-    if (selectError) throw selectError;
-    if (!candidates || candidates.length === 0) {
-      return NextResponse.json({ archived: 0 });
-    }
+    if (updateError) throw updateError;
 
-    const archiveRows = candidates.map((item) => ({
-      id: item.id,
-      nama: item.nama,
-      absen: item.absen,
-      kelas: item.kelas,
-      alasan: item.alasan,
-      status: item.status,
-      created_at: item.created_at,
-      archive_date: window.isoDate,
-      archived_at: new Date().toISOString(),
-    }));
-
-    const { error: insertError } = await supabaseAdmin.from('izin_archive').upsert(archiveRows);
-    if (insertError) throw insertError;
-
-    const ids = candidates.map((item) => item.id);
-    const { error: deleteError } = await supabaseAdmin.from('izin').delete().in('id', ids);
-    if (deleteError) throw deleteError;
-
-    return NextResponse.json({ archived: archiveRows.length, archiveDate: window.isoDate });
+    return NextResponse.json({ 
+      archived: updated?.length ?? 0, 
+      archiveDate: window.isoDate 
+    });
   } catch (error) {
     console.error('POST /api/archive error:', error);
     return NextResponse.json({ error: 'Gagal memindahkan izin ke arsip' }, { status: 500 });

@@ -15,15 +15,17 @@ export type ArchiveBatchResponse = Array<{
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
-      .from('izin_archive')
+      .from('izin')
       .select('*')
-  .order('archive_date', { ascending: false })
+      .eq('is_archived', true)
+      .order('archive_date', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
     const grouped = new Map<string, ArchivedIzin[]>();
     (data ?? []).forEach((item) => {
+      if (!item.archive_date) return;
       const list = grouped.get(item.archive_date) ?? [];
       list.push(item as ArchivedIzin);
       grouped.set(item.archive_date, list);

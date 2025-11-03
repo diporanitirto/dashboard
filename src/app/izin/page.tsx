@@ -20,8 +20,9 @@ const statusOptions: Array<{ key: StatusFilter; label: string }> = [
 const kelasOptions = ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8'];
 
 type ConfirmAction = {
-	type: 'approve' | 'delete';
-	izin: Izin;
+	type: 'approve' | 'delete' | 'bulkDelete';
+	izin?: Izin;
+	izinIds?: string[];
 };
 
 const LockIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -58,6 +59,7 @@ export default function IzinDashboard() {
 	const [tokenValid, setTokenValid] = useState(false);
 	const [tokenError, setTokenError] = useState<string | null>(null);
 	const [tokenModalView, setTokenModalView] = useState<'activate' | 'manage' | 'error' | null>(null);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [showArchived, setShowArchived] = useState(false);
 
 	const verifyAdminToken = useCallback(async (token: string) => {
@@ -296,6 +298,41 @@ export default function IzinDashboard() {
 		}
 	};
 
+	const handleBulkDelete = async (ids: string[]) => {
+		if (!tokenValid || !actionToken) {
+			setTokenError('Aktifkan token admin terlebih dahulu.');
+			openTokenModal();
+			return;
+		}
+		try {
+			setBusyId('bulk-delete');
+			// Delete all selected items
+			const deletePromises = ids.map(id =>
+				fetch(`/api/izin/${id}`, {
+					method: 'DELETE',
+					headers: {
+						'x-action-token': actionToken,
+					},
+				})
+			);
+			
+			const results = await Promise.all(deletePromises);
+			const failedCount = results.filter(r => !r.ok).length;
+			
+			if (failedCount > 0) {
+				console.error(`${failedCount} items gagal dihapus`);
+			}
+			
+			await fetchIzin();
+			setSelectedIds(new Set()); // Clear selection
+		} catch (error) {
+			console.error(error);
+			alert('Gagal menghapus beberapa izin.');
+		} finally {
+			setBusyId(null);
+		}
+	};
+
 	const openApproveConfirm = (izin: Izin) => {
 		if (!tokenValid) {
 			setTokenError('Aktifkan token admin terlebih dahulu.');
@@ -314,16 +351,31 @@ export default function IzinDashboard() {
 		setConfirmAction({ type: 'delete', izin });
 	};
 
+	const openBulkDeleteConfirm = () => {
+		if (!tokenValid) {
+			setTokenError('Aktifkan token admin terlebih dahulu.');
+			openTokenModal();
+			return;
+		}
+		if (selectedIds.size === 0) {
+			alert('Pilih izin yang ingin dihapus terlebih dahulu.');
+			return;
+		}
+		setConfirmAction({ type: 'bulkDelete', izinIds: Array.from(selectedIds) });
+	};
+
 	const cancelConfirmation = () => {
 		setConfirmAction(null);
 	};
 
 	const executeConfirmation = async () => {
 		if (!confirmAction) return;
-		if (confirmAction.type === 'approve') {
+		if (confirmAction.type === 'approve' && confirmAction.izin) {
 			await handleApprove(confirmAction.izin.id);
-		} else {
+		} else if (confirmAction.type === 'delete' && confirmAction.izin) {
 			await handleDelete(confirmAction.izin.id);
+		} else if (confirmAction.type === 'bulkDelete' && confirmAction.izinIds) {
+			await handleBulkDelete(confirmAction.izinIds);
 		}
 		// Modal will auto-close after showing success
 	};
@@ -524,19 +576,33 @@ export default function IzinDashboard() {
 											) : (
 												<RefreshIcon className="h-5 w-5" />
 											)}
-									</button>
+										</button>
+										{tokenValid && selectedIds.size > 0 && (
+											<button
+												onClick={openBulkDeleteConfirm}
+												disabled={busyId === 'bulk-delete'}
+												className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-300 disabled:cursor-not-allowed disabled:bg-rose-300"
+											>
+												<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+												</svg>
+												Hapus {selectedIds.size} Terpilih
+											</button>
+										)}
+									</div>
 								</div>
-							</div>
 
-						{loading ? (
-							<Loading />
-						) : (
-							<IzinTable
+							{loading ? (
+								<Loading />
+							) : (
+								<IzinTable
 									data={filteredData}
 									onApproveClick={openApproveConfirm}
 									onDeleteClick={openDeleteConfirm}
 									canManage={tokenValid}
 									busyId={busyId}
+									selectedIds={selectedIds}
+									onSelectionChange={setSelectedIds}
 								/>
 							)}
 						</div>
@@ -676,15 +742,29 @@ export default function IzinDashboard() {
 			)}
 			<ConfirmModal
 				open={Boolean(confirmAction)}
-				title={confirmAction?.type === 'approve' ? 'Konfirmasi Approve' : 'Konfirmasi Hapus'}
+				title={
+					confirmAction?.type === 'approve' 
+						? 'Konfirmasi Approve' 
+						: confirmAction?.type === 'bulkDelete'
+						? 'Konfirmasi Hapus Multiple'
+						: 'Konfirmasi Hapus'
+				}
 				message={
 					confirmAction
-						? `Apakah kamu yakin ingin ${
-							confirmAction.type === 'approve' ? 'menyetujui' : 'menghapus'
-						} izin ${confirmAction.izin.nama}?`
+						? confirmAction.type === 'bulkDelete'
+							? `Apakah kamu yakin ingin menghapus ${confirmAction.izinIds?.length} izin yang dipilih? Tindakan ini tidak dapat dibatalkan.`
+							: `Apakah kamu yakin ingin ${
+								confirmAction.type === 'approve' ? 'menyetujui' : 'menghapus'
+							} izin ${confirmAction.izin?.nama}?`
 						: ''
 				}
-				confirmLabel={confirmAction?.type === 'approve' ? 'Ya, Setujui' : 'Ya, Hapus'}
+				confirmLabel={
+					confirmAction?.type === 'approve' 
+						? 'Ya, Setujui' 
+						: confirmAction?.type === 'bulkDelete'
+						? `Ya, Hapus ${confirmAction.izinIds?.length} Izin`
+						: 'Ya, Hapus'
+				}
 				onConfirm={executeConfirmation}
 				onClose={cancelConfirmation}
 			/>

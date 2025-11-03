@@ -16,9 +16,34 @@ type IzinTableProps = {
   onDeleteClick: (izin: Izin) => void;
   canManage: boolean;
   busyId?: string | null;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 };
 
-export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busyId }: IzinTableProps) {
+export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busyId, selectedIds = new Set(), onSelectionChange }: IzinTableProps) {
+  const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+    if (checked) {
+      onSelectionChange(new Set(data.map(item => item.id)));
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (!onSelectionChange) return;
+    const newSet = new Set(selectedIds);
+    if (checked) {
+      newSet.add(id);
+    } else {
+      newSet.delete(id);
+    }
+    onSelectionChange(newSet);
+  };
+
+  const allSelected = data.length > 0 && data.every(item => selectedIds.has(item.id));
+  const someSelected = data.some(item => selectedIds.has(item.id)) && !allSelected;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="space-y-4 p-4 sm:hidden">
@@ -88,6 +113,22 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
           <table className="min-w-[720px] divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
+            {canManage && onSelectionChange && (
+              <th className="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) {
+                      input.indeterminate = someSelected;
+                    }
+                  }}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  aria-label="Pilih semua"
+                />
+              </th>
+            )}
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               Nama
             </th>
@@ -119,6 +160,17 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
         <tbody className="divide-y divide-slate-200 bg-white text-sm">
           {data.map((item) => (
             <tr key={item.id} className="transition hover:bg-sky-50/80">
+              {canManage && onSelectionChange && (
+                <td className="px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={(e) => handleSelectOne(item.id, e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    aria-label={`Pilih ${item.nama}`}
+                  />
+                </td>
+              )}
               <td className="px-4 py-4 font-semibold text-slate-800">
                 {item.nama}
               </td>

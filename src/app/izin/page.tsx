@@ -158,6 +158,15 @@ export default function IzinDashboard() {
 		};
 	}, [fetchIzin]);
 
+	// Auto-refresh every 10 seconds
+	useEffect(() => {
+		const intervalId = setInterval(() => {
+			fetchIzin().catch((error: unknown) => console.error('Auto-refresh error:', error));
+		}, 10000); // 10 seconds
+
+		return () => clearInterval(intervalId);
+	}, [fetchIzin]);
+
 	const handleRefresh = async () => {
 		try {
 			setRefreshing(true);

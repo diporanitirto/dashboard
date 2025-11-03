@@ -7,22 +7,6 @@ const ALLOWED_CATEGORIES = ['foto', 'video', 'lainnya'] as const;
 
 type Category = (typeof ALLOWED_CATEGORIES)[number];
 
-type DocumentationRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  category: Category | null;
-  file_url: string;
-  file_type: string | null;
-  file_size: number | null;
-  file_path: string;
-  created_at: string;
-  profiles?: {
-    full_name: string | null;
-    role: string | null;
-  } | null;
-};
-
 const sanitizeFileName = (name: string) =>
   name
     .toLowerCase()
@@ -55,7 +39,20 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ error: 'Gagal memuat dokumentasi.' }, { status: 500 });
   }
 
-  const mapped = ((data ?? []) as DocumentationRow[]).map((item) => ({
+  type DocWithProfile = {
+    id: string;
+    title: string;
+    description: string | null;
+    category: Category | null;
+    file_url: string;
+    file_type: string | null;
+    file_size: number | null;
+    file_path: string;
+    created_at: string;
+    profiles: { full_name: string | null; role: string | null } | null;
+  };
+
+  const mapped = (data as unknown as DocWithProfile[]).map((item) => ({
     id: item.id,
     title: item.title,
     description: item.description,

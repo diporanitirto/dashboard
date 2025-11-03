@@ -31,7 +31,18 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ error: 'Gagal memuat agenda.' }, { status: 500 });
   }
 
-  const mapped = (data ?? []).map((item) => ({
+  type AgendaWithProfile = {
+    id: string;
+    title: string;
+    description: string | null;
+    location: string | null;
+    starts_at: string;
+    ends_at: string | null;
+    created_at: string;
+    profiles: { full_name: string | null; role: string | null } | null;
+  };
+
+  const mapped = (data as unknown as AgendaWithProfile[]).map((item) => ({
     id: item.id,
     title: item.title,
     description: item.description,
@@ -41,8 +52,8 @@ export const GET = async (request: NextRequest) => {
     createdAt: item.created_at,
     author: item.profiles
       ? {
-          name: item.profiles.full_name as string | null,
-          role: item.profiles.role as string | null,
+          name: item.profiles.full_name,
+          role: item.profiles.role,
         }
       : null,
   }));

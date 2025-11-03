@@ -50,11 +50,21 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
         {data.map((item) => (
           <div key={item.id} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
                   {item.kelas} · {item.absen}
                 </p>
                 <p className="mt-1 text-lg font-semibold text-slate-800">{item.nama}</p>
+                {item.sangga && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 font-medium text-purple-700">
+                      <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      {item.sangga}
+                    </span>
+                  </p>
+                )}
               </div>
               <StatusBadge label={item.status} />
             </div>
@@ -139,6 +149,9 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
               Kelas
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Sangga
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               Status
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -176,6 +189,18 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
               </td>
               <td className="px-4 py-4 text-slate-600">{item.absen}</td>
               <td className="px-4 py-4 text-slate-600">{item.kelas}</td>
+              <td className="px-4 py-4">
+                {item.sangga ? (
+                  <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+                    <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    {item.sangga}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400">-</span>
+                )}
+              </td>
               <td className="px-4 py-4">
                 <StatusBadge label={item.status} />
               </td>
@@ -231,7 +256,7 @@ export function IzinTable({ data, onApproveClick, onDeleteClick, canManage, busy
           {data.length === 0 && (
             <tr>
               <td
-                colSpan={canManage ? 8 : 7}
+                colSpan={canManage ? 9 : 8}
                 className="px-4 py-12 text-center text-sm font-medium text-slate-500"
               >
                 Tidak ada data izin untuk ditampilkan.

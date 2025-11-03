@@ -556,27 +556,29 @@ export default function IzinDashboard() {
 										</div>
 									</div>
 									<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-										<div className="relative w-full sm:w-auto">
-											<input
-												type="search"
-												value={search}
-												onChange={(event) => setSearch(event.target.value)}
-												placeholder="Cari nama atau alasan..."
-												className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-300 sm:w-64"
-											/>
+										<div className="flex gap-2 w-full sm:w-auto">
+											<div className="relative flex-1 sm:flex-initial">
+												<input
+													type="search"
+													value={search}
+													onChange={(event) => setSearch(event.target.value)}
+													placeholder="Cari nama atau alasan..."
+													className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-300 sm:w-64"
+												/>
+											</div>
+											<button
+												onClick={handleRefresh}
+												disabled={refreshing}
+												aria-label="Segarkan data"
+												className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
+											>
+												{refreshing ? (
+													<RefreshIcon className="h-5 w-5 animate-[spin_0.8s_linear_infinite_reverse]" />
+												) : (
+													<RefreshIcon className="h-5 w-5" />
+												)}
+											</button>
 										</div>
-										<button
-											onClick={handleRefresh}
-											disabled={refreshing}
-											aria-label="Segarkan data"
-											className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
-										>
-											{refreshing ? (
-												<RefreshIcon className="h-5 w-5 animate-[spin_0.8s_linear_infinite_reverse]" />
-											) : (
-												<RefreshIcon className="h-5 w-5" />
-											)}
-										</button>
 										{tokenValid && selectedIds.size > 0 && (
 											<button
 												onClick={openBulkDeleteConfirm}

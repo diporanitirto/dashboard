@@ -557,7 +557,7 @@ export default function IzinDashboard() {
 									</div>
 									<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 										<div className="flex gap-2 w-full sm:w-auto">
-											<div className="relative flex-1 sm:flex-initial">
+											<div className="relative flex-1 sm:flex-none">
 												<input
 													type="search"
 													value={search}
@@ -570,7 +570,7 @@ export default function IzinDashboard() {
 												onClick={handleRefresh}
 												disabled={refreshing}
 												aria-label="Segarkan data"
-												className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
+												className="flex-shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
 											>
 												{refreshing ? (
 													<RefreshIcon className="h-5 w-5 animate-[spin_0.8s_linear_infinite_reverse]" />

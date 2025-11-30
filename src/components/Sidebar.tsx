@@ -162,7 +162,7 @@ export const Sidebar = () => {
 
 	return (
 		<SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>
-/* Mobile Header */
+			{/* Mobile Header */}
 			<header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur lg:hidden">
 				<Link href="/" className="flex items-center gap-2">
 					<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg">

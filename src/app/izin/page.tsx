@@ -420,11 +420,6 @@ export default function IzinDashboard() {
 		[izinList]
 	);
 
-	const approvedCount = useMemo(
-		() => izinList.filter((izin) => izin.status === 'approved').length,
-		[izinList]
-	);
-
 	const totalCount = izinList.length;
 	const kelasStats = useMemo(() => {
 		const template: Record<string, number> = {

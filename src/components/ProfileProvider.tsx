@@ -35,6 +35,8 @@ const buildProfileFromRow = (
 		tingkatan,
 		jabatan,
 		bio: (row.bio as string) ?? null,
+		instagram: (row.instagram as string) ?? null,
+		motto: (row.motto as string) ?? null,
 		avatar_url: (row.avatar_url as string) ?? null,
 		created_at: (row.created_at as string) ?? new Date().toISOString(),
 		updated_at: (row.updated_at as string) ?? new Date().toISOString(),

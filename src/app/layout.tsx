@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ProfileProvider } from '@/components/ProfileProvider';
-import { TopNav } from '@/components/TopNav';
+import { Sidebar } from '@/components/Sidebar';
 import './globals.css';
 
 const geistSans = Geist({
@@ -25,11 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 antialiased`}>
+    <html lang="id" className="overflow-x-hidden">
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-950 text-slate-50 antialiased overflow-x-hidden`}>
         <ProfileProvider>
-          <TopNav />
-          <main className="min-h-screen pb-12">
+          <Sidebar />
+          {/* Main content - padding managed by CSS variable from Sidebar */}
+          <main className="min-h-screen pb-12 pt-16 lg:pt-0 transition-[padding] duration-300 lg:pl-[var(--sidebar-width)]">
             {children}
           </main>
         </ProfileProvider>

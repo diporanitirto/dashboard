@@ -3,9 +3,9 @@ type StatusBadgeProps = {
 };
 
 const styles: Record<StatusBadgeProps['label'], string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  rejected: 'bg-red-100 text-red-800 border-red-200',
+  pending: 'bg-yellow-900/50 text-yellow-300 border-yellow-700/50',
+  approved: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50',
+  rejected: 'bg-red-900/50 text-red-300 border-red-700/50',
 };
 
 const text: Record<StatusBadgeProps['label'], string> = {
@@ -17,7 +17,7 @@ const text: Record<StatusBadgeProps['label'], string> = {
 export function StatusBadge({ label }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${styles[label]}`}
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 sm:px-3 sm:py-1 sm:text-xs ${styles[label]}`}
     >
       {text[label]}
     </span>

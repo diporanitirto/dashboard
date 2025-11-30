@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function Loading() {
   return (
-    <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-slate-950 flex items-center justify-center z-50">
       <div className="text-center">
         {/* Logo with scale and rotate animation */}
         <div className="mb-6">
@@ -19,15 +19,15 @@ export default function Loading() {
         </div>
 
         {/* Loading Text */}
-        <p className="text-gray-500 text-sm">
+        <p className="text-slate-400 text-sm">
           Memuat data<span className="animate-dots"></span>
         </p>
 
         {/* Loading dots */}
         <div className="flex justify-center gap-2 mt-4">
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+          <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
         </div>
       </div>
 

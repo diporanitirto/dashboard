@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BPH_POSITIONS, PANGKAT_LABELS, type Pangkat } from '@/lib/auth';
+import { 
+  TINGKATAN_OPTIONS, 
+  JABATAN_OPTIONS, 
+  type Tingkatan, 
+  type Jabatan 
+} from '@/lib/auth';
 import { resolveAuthContext } from '@/lib/server-auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const isValidPangkat = (value: unknown): value is Pangkat =>
-	value === 'anggota' || BPH_POSITIONS.includes(value as (typeof BPH_POSITIONS)[number]);
+const isValidTingkatan = (value: unknown): value is Tingkatan =>
+	TINGKATAN_OPTIONS.includes(value as Tingkatan);
+
+const isValidJabatan = (value: unknown): value is Jabatan =>
+	JABATAN_OPTIONS.includes(value as Jabatan);
 
 export const GET = async (request: NextRequest) => {
 	const auth = await resolveAuthContext(request);
@@ -24,8 +32,11 @@ export const PUT = async (request: NextRequest) => {
 	const payload = (await request.json().catch(() => null)) as
 		| {
 			fullName?: unknown;
-			pangkat?: unknown;
+			tingkatan?: unknown;
+			jabatan?: unknown;
 			bio?: unknown;
+			instagram?: unknown;
+			motto?: unknown;
 		}
 		| null;
 
@@ -34,11 +45,24 @@ export const PUT = async (request: NextRequest) => {
 	}
 
 	const fullName = typeof payload.fullName === 'string' ? payload.fullName.trim() : '';
-	const pangkat = payload.pangkat;
+	const tingkatan = payload.tingkatan;
+	const jabatan = payload.jabatan;
 	const bio =
 		typeof payload.bio === 'string'
 			? payload.bio.trim().slice(0, 1000)
 			: payload.bio === null || payload.bio === undefined
+				? null
+				: undefined;
+	const instagram =
+		typeof payload.instagram === 'string'
+			? payload.instagram.trim().slice(0, 100)
+			: payload.instagram === null || payload.instagram === undefined
+				? null
+				: undefined;
+	const motto =
+		typeof payload.motto === 'string'
+			? payload.motto.trim().slice(0, 200)
+			: payload.motto === null || payload.motto === undefined
 				? null
 				: undefined;
 
@@ -46,33 +70,19 @@ export const PUT = async (request: NextRequest) => {
 		return NextResponse.json({ error: 'Nama lengkap wajib diisi.' }, { status: 400 });
 	}
 
-	if (!isValidPangkat(pangkat)) {
-		return NextResponse.json({ error: 'Pangkat tidak dikenal.' }, { status: 400 });
+	if (!isValidTingkatan(tingkatan)) {
+		return NextResponse.json({ error: 'Tingkatan tidak valid. Pilih Bantara atau Laksana.' }, { status: 400 });
 	}
 
-	// Admin tidak dibatasi pangkat, non-admin BPH harus pakai pangkat BPH
-	if (
-		auth.profile?.role === 'bph' &&
-		!BPH_POSITIONS.includes(pangkat as (typeof BPH_POSITIONS)[number])
-	) {
-		return NextResponse.json(
-			{
-				error: 'Pangkat untuk peran BPH harus salah satu dari: ' +
-					BPH_POSITIONS.map((item) => PANGKAT_LABELS[item]).join(', '),
-			},
-			{ status: 400 }
-		);
-	}
-
-	// Admin bebas memilih pangkat apa saja
-	if (auth.profile?.role !== 'admin') {
-		// Validasi untuk non-admin selesai di atas
+	if (!isValidJabatan(jabatan)) {
+		return NextResponse.json({ error: 'Jabatan tidak valid.' }, { status: 400 });
 	}
 
 	const updatePayload: Record<string, unknown> = {
 		id: auth.userId,
 		full_name: fullName,
-		pangkat,
+		tingkatan,
+		jabatan,
 		updated_at: new Date().toISOString(),
 	};
 
@@ -80,10 +90,18 @@ export const PUT = async (request: NextRequest) => {
 		updatePayload.bio = bio;
 	}
 
+	if (instagram !== undefined) {
+		updatePayload.instagram = instagram;
+	}
+
+	if (motto !== undefined) {
+		updatePayload.motto = motto;
+	}
+
 	const { data, error } = await supabaseAdmin
 		.from('profiles')
 		.upsert(updatePayload, { onConflict: 'id' })
-		.select('id, full_name, role, pangkat, bio, avatar_url, created_at, updated_at')
+		.select('id, full_name, role, tingkatan, jabatan, bio, instagram, motto, avatar_url, created_at, updated_at')
 		.single();
 
 	if (error || !data) {

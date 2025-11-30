@@ -67,8 +67,8 @@ export const POST = async (request: NextRequest) => {
     return auth.response;
   }
 
-  if (auth.profile?.role !== 'bph') {
-    return NextResponse.json({ error: 'Hanya BPH yang dapat membuat agenda.' }, { status: 403 });
+  if (auth.profile?.role !== 'bph' && auth.profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Hanya BPH atau admin yang dapat membuat agenda.' }, { status: 403 });
   }
 
   const payload = (await request.json().catch(() => null)) as
@@ -125,4 +125,35 @@ export const POST = async (request: NextRequest) => {
   }
 
   return NextResponse.json(data, { status: 201 });
+};
+
+export const DELETE = async (request: NextRequest) => {
+  const auth = await resolveAuthContext(request);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
+  // Only BPH or admin can delete agendas
+  if (auth.profile?.role !== 'bph' && auth.profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Hanya BPH atau admin yang dapat menghapus agenda.' }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ error: 'ID agenda wajib diberikan.' }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin
+    .from('agendas')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Delete agenda error:', error);
+    return NextResponse.json({ error: 'Gagal menghapus agenda.' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true }, { status: 200 });
 };

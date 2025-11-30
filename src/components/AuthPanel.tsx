@@ -41,44 +41,44 @@ export const AuthPanel = () => {
 	};
 
 	return (
-		<section id="autentikasi" className="w-full max-w-md rounded-3xl border border-slate-200 bg-white px-6 py-7 shadow-sm">
+		<section id="autentikasi" className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900/80 px-6 py-7 shadow-xl backdrop-blur">
 			<div className="flex flex-col gap-1">
-				<h2 className="text-lg font-semibold text-slate-900">Masuk ke Dashboard</h2>
-				<p className="text-sm text-slate-500">
+				<h2 className="text-lg font-semibold text-slate-50">Masuk ke Dashboard</h2>
+				<p className="text-sm text-slate-400">
 					Akun dibuat oleh administrator Diporani. Gunakan email yang dibagikan oleh pengurus.
 				</p>
 			</div>
 			<form onSubmit={handleSubmit} className="mt-5 space-y-4">
-				<label className="block text-sm font-medium text-slate-700">
+				<label className="block text-sm font-medium text-slate-300">
 					<span>Email</span>
 					<input
 						type="text"
 						value={email}
 						onChange={(event) => setEmail(event.target.value)}
-						className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+						className="mt-1 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						required
 					/>
 				</label>
-				<label className="block text-sm font-medium text-slate-700">
+				<label className="block text-sm font-medium text-slate-300">
 					<span>Password</span>
 					<input
 						type="password"
 						value={password}
 						onChange={(event) => setPassword(event.target.value)}
-						className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+						className="mt-1 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
 						required
 						minLength={passwordMinLength}
 					/>
 				</label>
 				{statusMessage && (
-					<p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+					<p className="rounded-2xl border border-amber-500/40 bg-amber-950/50 px-4 py-2 text-sm text-amber-200">
 						{statusMessage}
 					</p>
 				)}
 				<button
 					type="submit"
 					disabled={busy}
-					className="w-full rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-300"
+					className="w-full rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-700"
 				>
 					{busy ? 'Memproses...' : 'Masuk'}
 				</button>

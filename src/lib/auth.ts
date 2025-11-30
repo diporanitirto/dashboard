@@ -2,6 +2,45 @@ export const DASHBOARD_ROLES = ['admin', 'bph', 'materi', 'media', 'anggota'] as
 
 export type DashboardRole = (typeof DASHBOARD_ROLES)[number];
 
+// =====================
+// SISTEM TINGKATAN & JABATAN BARU
+// =====================
+
+export const TINGKATAN_OPTIONS = ['bantara', 'laksana'] as const;
+export type Tingkatan = (typeof TINGKATAN_OPTIONS)[number];
+
+export const JABATAN_OPTIONS = ['anggota', 'pradana', 'kerani', 'hartoko', 'judat'] as const;
+export type Jabatan = (typeof JABATAN_OPTIONS)[number];
+
+export const TINGKATAN_LABELS: Record<Tingkatan, string> = {
+	bantara: 'Penegak Bantara',
+	laksana: 'Penegak Laksana',
+};
+
+export const JABATAN_LABELS: Record<Jabatan, string> = {
+	anggota: 'Anggota',
+	pradana: 'Pradana (Ketua)',
+	kerani: 'Kerani (Sekretaris)',
+	hartoko: 'Hartoko (Bendahara)',
+	judat: 'Judat (Pemangku Adat)',
+};
+
+// =====================
+// ROLE LABELS
+// =====================
+
+export const ROLE_LABELS: Record<DashboardRole, string> = {
+	admin: 'Admin',
+	bph: 'BPH',
+	materi: 'Tim Materi',
+	media: 'Tim Media',
+	anggota: 'Anggota',
+};
+
+// =====================
+// LEGACY - untuk kompatibilitas (akan dihapus nanti)
+// =====================
+
 export const BPH_POSITIONS = [
 	'pradana',
 	'pradana_putri',
@@ -14,16 +53,7 @@ export const BPH_POSITIONS = [
 ] as const;
 
 export type Bphpangkat = (typeof BPH_POSITIONS)[number];
-
 export type Pangkat = Bphpangkat | 'anggota';
-
-export const ROLE_LABELS: Record<DashboardRole, string> = {
-	admin: 'Admin',
-	bph: 'BPH',
-	materi: 'Tim Materi',
-	media: 'Tim Media',
-	anggota: 'Anggota',
-};
 
 export const PANGKAT_LABELS: Record<Pangkat, string> = {
 	anggota: 'Anggota',
@@ -57,11 +87,14 @@ export type DashboardProfile = {
 	email: string;
 	full_name: string | null;
 	role: DashboardRole;
-	pangkat: Pangkat;
+	tingkatan: Tingkatan | null;
+	jabatan: Jabatan | null;
 	bio: string | null;
+	instagram: string | null;
+	motto: string | null;
 	avatar_url: string | null;
 	created_at: string;
 	updated_at: string;
+	// Legacy field - untuk kompatibilitas
+	pangkat?: Pangkat;
 };
-
-export const allPangkatOptions: Pangkat[] = ['anggota', ...BPH_POSITIONS];

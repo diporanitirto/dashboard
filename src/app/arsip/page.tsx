@@ -164,67 +164,72 @@ export default function ArchivePage() {
   }, [handleRefresh]);
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-16">
-      <div className="mx-auto max-w-5xl px-4 pt-10 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-slate-950 pb-16">
+      <div className="px-4 pt-10 lg:px-6">
+        {/* Header Section */}
+        <div className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-400">
               Arsip Jumat
             </p>
-            <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+            <h1 className="mt-1 text-2xl font-semibold text-slate-50 sm:text-3xl">
               Rekap Izin Sejak Awal Kegiatan
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-slate-400 sm:text-sm">
               Terakhir diperbarui {pageTitle}. Arsip dipindahkan otomatis setiap Jumat pukul 15.00 WIB.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-800"
+              className="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-slate-600 hover:text-slate-100 sm:px-4 sm:py-2 sm:text-sm"
             >
-              Kembali ke Dashboard
+              Kembali
             </Link>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
               aria-label="Segarkan"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-white shadow transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-900 shadow transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400 sm:h-10 sm:w-10"
             >
               {refreshing ? (
-                <RefreshIcon className="h-5 w-5 animate-[spin_0.8s_linear_infinite_reverse]" />
+                <RefreshIcon className="h-4 w-4 animate-[spin_0.8s_linear_infinite_reverse] sm:h-5 sm:w-5" />
               ) : (
-                <RefreshIcon className="h-5 w-5" />
+                <RefreshIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
             <button
               onClick={handleDownloadAll}
               disabled={exporting}
-              className="inline-flex items-center justify-center rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-emerald-900 shadow transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-emerald-200"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-emerald-950 shadow transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-700 sm:px-4 sm:py-2 sm:text-sm"
             >
-              {exporting ? 'Menyiapkan...' : 'Unduh XLSX (Approved)'}
+              {exporting ? 'Menyiapkan...' : 'Unduh XLSX'}
             </button>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
-              <span>Status:</span>
-              <div className="flex gap-1">
-                {statusOptions.map((option) => {
-                  const active = statusFilter === option.key;
-                  return (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setStatusFilter(option.key)}
-                      className={`rounded-full px-3 py-1 transition ${
-                        active
-                          ? 'bg-slate-800 text-white'
-                          : 'bg-white text-slate-500 hover:bg-slate-100'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+          </div>
+          
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
+            <span className="flex-shrink-0">Status:</span>
+            <div className="flex gap-1">
+              {statusOptions.map((option) => {
+                const active = statusFilter === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setStatusFilter(option.key)}
+                    className={`flex-shrink-0 rounded-full px-2.5 py-1 transition sm:px-3 ${
+                      active
+                        ? 'bg-slate-50 text-slate-900'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

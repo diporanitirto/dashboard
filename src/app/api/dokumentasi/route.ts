@@ -21,6 +21,60 @@ const parseCategory = (value: FormDataEntryValue | null): Category => {
   return (ALLOWED_CATEGORIES.find((item) => item === normalized) ?? 'foto') as Category;
 };
 
+export const DELETE = async (request: NextRequest) => {
+  const auth = await resolveAuthContext(request);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
+  // Only media, bph, or admin can delete
+  if (auth.profile?.role !== 'media' && auth.profile?.role !== 'bph' && auth.profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Hanya tim media, BPH, atau admin yang dapat menghapus.' }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ error: 'ID dokumentasi wajib diberikan.' }, { status: 400 });
+  }
+
+  // Get file_path first
+  const { data: doc, error: fetchError } = await supabaseAdmin
+    .from('documentation_assets')
+    .select('file_path')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !doc) {
+    return NextResponse.json({ error: 'Dokumentasi tidak ditemukan.' }, { status: 404 });
+  }
+
+  // Delete from storage
+  if (doc.file_path) {
+    const { error: storageError } = await supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .remove([doc.file_path]);
+
+    if (storageError) {
+      console.error('Delete storage error:', storageError);
+    }
+  }
+
+  // Delete from database
+  const { error: deleteError } = await supabaseAdmin
+    .from('documentation_assets')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    console.error('Delete dokumentasi error:', deleteError);
+    return NextResponse.json({ error: 'Gagal menghapus dokumentasi.' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true }, { status: 200 });
+};
+
 export const GET = async (request: NextRequest) => {
   const auth = await resolveAuthContext(request);
   if ('response' in auth) {
@@ -79,8 +133,8 @@ export const POST = async (request: NextRequest) => {
     return auth.response;
   }
 
-  if (auth.profile?.role !== 'media') {
-    return NextResponse.json({ error: 'Hanya tim media yang dapat mengunggah.' }, { status: 403 });
+  if (auth.profile?.role !== 'media' && auth.profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Hanya tim media atau admin yang dapat mengunggah.' }, { status: 403 });
   }
 
   const formData = await request.formData();

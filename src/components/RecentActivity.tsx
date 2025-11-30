@@ -9,31 +9,30 @@ type RecentActivityProps = {
 
 export function RecentActivity({ data }: RecentActivityProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 overflow-hidden">
       {data.map((item) => (
         <div
           key={item.id}
-          className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-2 sm:gap-3 sm:rounded-xl sm:p-3 overflow-hidden"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-600">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sky-900/60 text-[10px] font-bold text-sky-400 sm:h-8 sm:w-8 sm:text-xs">
             {item.nama.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-slate-800">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1.5 overflow-hidden">
+              <p className="font-semibold text-slate-100 truncate text-xs sm:text-sm min-w-0 flex-1">
                 {item.nama}
               </p>
               <StatusBadge label={item.status} />
             </div>
-            <p className="text-sm text-slate-500">
-              Kelas {item.kelas} · Absen #{item.absen}
+            <p className="text-[9px] text-slate-400 sm:text-xs">
+              {item.kelas} · #{item.absen}
             </p>
-            <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+            <p className="mt-0.5 line-clamp-1 text-[9px] text-slate-300 sm:text-xs">
               {item.alasan}
             </p>
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-0.5 text-[8px] text-slate-500 sm:mt-1 sm:text-[10px]">
               {new Intl.DateTimeFormat('id-ID', {
-                weekday: 'short',
                 day: '2-digit',
                 month: 'short',
                 hour: '2-digit',
@@ -44,7 +43,7 @@ export function RecentActivity({ data }: RecentActivityProps) {
         </div>
       ))}
       {data.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500 sm:rounded-xl sm:p-6 sm:text-sm">
           Aktivitas terbaru akan muncul di sini.
         </div>
       )}

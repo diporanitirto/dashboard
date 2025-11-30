@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { supabaseAdmin } from './supabase-admin';
-import type { DashboardProfile, Pangkat, DashboardRole } from './auth';
+import type { DashboardProfile, Tingkatan, Jabatan, DashboardRole } from './auth';
 
 type AuthSuccess = {
 	userId: string;
@@ -28,14 +28,18 @@ const mapProfile = (row: Record<string, unknown>, email: string): DashboardProfi
 	const id = typeof row.id === 'string' ? row.id : null;
 	if (!id) return null;
 	const role = row.role as DashboardRole | undefined;
-	const pangkat = row.pangkat as Pangkat | undefined;
-	if (!role || !pangkat) return null;
+	if (!role) return null;
+	
+	const tingkatan = (row.tingkatan as Tingkatan) ?? null;
+	const jabatan = (row.jabatan as Jabatan) ?? null;
+	
 	return {
 		id,
 		email,
 		full_name: (row.full_name as string) ?? null,
 		role,
-		pangkat,
+		tingkatan,
+		jabatan,
 		bio: (row.bio as string) ?? null,
 		avatar_url: (row.avatar_url as string) ?? null,
 		created_at: (row.created_at as string) ?? new Date().toISOString(),
@@ -63,7 +67,7 @@ export const resolveAuthContext = async (request: NextRequest): Promise<AuthCont
 
 	const { data: profileRow, error: profileError } = await supabaseAdmin
 		.from('profiles')
-		.select('id, full_name, role, pangkat, bio, avatar_url, created_at, updated_at')
+		.select('id, full_name, role, tingkatan, jabatan, bio, avatar_url, created_at, updated_at')
 		.eq('id', userId)
 		.maybeSingle();
 

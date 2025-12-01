@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type SVGProps } from 'react'
 import Link from 'next/link';
 import { Izin, supabase } from '@/lib/supabase';
 import { IzinTable } from '@/components/IzinTable';
+import { IzinChart } from '@/components/IzinChart';
 import { ClassDistribution } from '@/components/ClassDistribution';
 import { RecentActivity } from '@/components/RecentActivity';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -480,6 +481,12 @@ export default function IzinDashboard() {
 							<p className="mt-0.5 text-[10px] text-amber-100/80 sm:mt-1 sm:text-xs">{showArchived ? 'Arsip mingguan' : 'Izin aktif'}</p>
 						</div>
 					</section>
+
+					{/* Charts Section */}
+					<section className="mb-6 lg:mb-8">
+						<IzinChart izinList={izinList} />
+					</section>
+
 					<section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-4 py-6 text-slate-50 shadow-2xl ring-1 ring-slate-800 sm:rounded-3xl sm:px-7 sm:py-12">
 						<div className="absolute -left-24 top-1/2 h-48 w-48 -translate-y-1/2 rounded-full bg-white/10 blur-3xl sm:h-64 sm:w-64" />
 						<div className="absolute -right-24 top-10 h-48 w-48 rounded-full bg-white/10 blur-3xl sm:h-64 sm:w-64" />
@@ -492,8 +499,7 @@ export default function IzinDashboard() {
 								Dashboard Rekap Izin Diporani
 							</h1>
 							<p className="mt-2 max-w-2xl text-xs text-slate-300 sm:mt-3 sm:text-sm">
-								Pantau semua permohonan izin anggota secara realtime. Data tersinkron otomatis dengan Supabase
-								dan siap digunakan sebagai bahan monitoring BPH.
+								Pantau semua permohonan izin anggota secara realtime.
 							</p>
 							<div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-medium text-slate-200 sm:mt-6 sm:gap-4 sm:text-xs">
 								<div className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 px-2.5 py-1 ring-1 ring-slate-700 sm:gap-2 sm:px-3">

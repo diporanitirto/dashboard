@@ -1,7 +1,9 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useProfile } from '@/components/ProfileProvider';
 import {
   TINGKATAN_LABELS,
@@ -12,6 +14,9 @@ import {
   type Tingkatan,
   type Jabatan,
 } from '@/lib/auth';
+
+// Dynamic import for ImageCropper to avoid SSR issues
+const ImageCropper = dynamic(() => import('@/components/ImageCropper'), { ssr: false });
 
 const MAX_BIO_LENGTH = 500;
 
@@ -25,6 +30,16 @@ export default function ProfilPage() {
   const [motto, setMotto] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  
+  // Avatar states
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Cropper states
+  const [cropperImage, setCropperImage] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   useEffect(() => {
     if (!profile) {
@@ -34,6 +49,7 @@ export default function ProfilPage() {
       setBio('');
       setInstagram('');
       setMotto('');
+      setAvatarUrl(null);
       return;
     }
     setFullName(profile.full_name ?? '');
@@ -42,7 +58,124 @@ export default function ProfilPage() {
     setBio(profile.bio ?? '');
     setInstagram(profile.instagram ?? '');
     setMotto(profile.motto ?? '');
+    setAvatarUrl(profile.avatar_url ?? null);
   }, [profile]);
+
+  // Handle file selection - show cropper instead of direct upload
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarStatus('Format file tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.');
+      return;
+    }
+
+    // Validate file size (max 10MB for cropping, will be compressed after)
+    if (file.size > 10 * 1024 * 1024) {
+      setAvatarStatus('Ukuran file terlalu besar. Maksimal 10MB.');
+      return;
+    }
+
+    // Create object URL for cropper
+    const imageUrl = URL.createObjectURL(file);
+    setCropperImage(imageUrl);
+    setShowCropper(true);
+    setAvatarStatus(null);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle cropped image upload
+  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+    if (!session) return;
+
+    setShowCropper(false);
+    setUploadingAvatar(true);
+    setAvatarStatus(null);
+
+    // Cleanup cropper image URL
+    if (cropperImage) {
+      URL.revokeObjectURL(cropperImage);
+      setCropperImage(null);
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', croppedBlob, 'avatar.jpg');
+
+    try {
+      const response = await fetch('/api/avatar', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAvatarStatus(data.error || 'Gagal mengupload foto.');
+        return;
+      }
+
+      setAvatarUrl(data.avatar_url);
+      await refreshProfile();
+      setAvatarStatus('Foto profil berhasil diperbarui!');
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      setAvatarStatus('Terjadi kesalahan saat mengupload foto.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [session, cropperImage, refreshProfile]);
+
+  // Handle cropper cancel
+  const handleCropCancel = useCallback(() => {
+    setShowCropper(false);
+    if (cropperImage) {
+      URL.revokeObjectURL(cropperImage);
+      setCropperImage(null);
+    }
+  }, [cropperImage]);
+
+  const handleAvatarDelete = async () => {
+    if (!session) return;
+    
+    if (!confirm('Hapus foto profil?')) return;
+
+    setUploadingAvatar(true);
+    setAvatarStatus(null);
+
+    try {
+      const response = await fetch('/api/avatar', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setAvatarStatus(data.error || 'Gagal menghapus foto.');
+        return;
+      }
+
+      setAvatarUrl(null);
+      await refreshProfile();
+      setAvatarStatus('Foto profil berhasil dihapus.');
+    } catch (error) {
+      console.error('Avatar delete error:', error);
+      setAvatarStatus('Terjadi kesalahan saat menghapus foto.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,6 +264,86 @@ export default function ProfilPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4 sm:mt-8 sm:space-y-6">
+          {/* Image Cropper Modal */}
+          {showCropper && cropperImage && (
+            <ImageCropper
+              imageSrc={cropperImage}
+              onCropComplete={handleCropComplete}
+              onCancel={handleCropCancel}
+            />
+          )}
+
+          {/* Avatar Upload Section */}
+          <div className="space-y-3">
+            <label className="text-xs font-medium text-slate-300 sm:text-sm">Foto Profil</label>
+            <div className="flex items-center gap-4">
+              {/* Avatar Preview */}
+              <div className="relative h-20 w-20 flex-shrink-0 sm:h-24 sm:w-24">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt="Avatar"
+                    fill
+                    className="rounded-full object-cover border-2 border-slate-600"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-emerald-500 text-2xl font-bold text-emerald-950 sm:text-3xl">
+                    {fullName.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                    <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              
+              {/* Upload Controls */}
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="avatar-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  {uploadingAvatar ? 'Mengupload...' : 'Ganti Foto'}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleAvatarDelete}
+                    disabled={uploadingAvatar}
+                    className="rounded-lg border border-red-700/50 bg-red-900/30 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Hapus Foto
+                  </button>
+                )}
+                <p className="text-[10px] text-slate-500 sm:text-xs">JPG, PNG, WebP, GIF. Maks 10MB.</p>
+              </div>
+            </div>
+            {avatarStatus && (
+              <div className={`rounded-lg px-3 py-2 text-xs sm:text-sm ${
+                avatarStatus.includes('berhasil')
+                  ? 'bg-emerald-900/30 text-emerald-400'
+                  : 'bg-amber-900/30 text-amber-400'
+              }`}>
+                {avatarStatus}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-1 sm:space-y-1.5">
             <label className="text-xs font-medium text-slate-300 sm:text-sm" htmlFor="full-name-input">
               Nama Lengkap

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { AuthPanel } from '@/components/AuthPanel';
@@ -215,9 +216,21 @@ const ProfileCard = ({
 }) => (
   <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
     <div className="flex items-center gap-4">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-xl font-bold text-white shadow-lg">
-        {profile?.full_name?.[0]?.toUpperCase() || session?.user.email?.[0]?.toUpperCase() || '?'}
-      </div>
+      {profile?.avatar_url ? (
+        <div className="relative h-14 w-14 flex-shrink-0">
+          <Image
+            src={profile.avatar_url}
+            alt={profile.full_name || 'Avatar'}
+            fill
+            className="rounded-full object-cover"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-xl font-bold text-white shadow-lg">
+          {profile?.full_name?.[0]?.toUpperCase() || session?.user.email?.[0]?.toUpperCase() || '?'}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-lg font-semibold text-slate-100">
           {profile?.full_name || 'Pengguna Baru'}
@@ -471,21 +484,26 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Anggota Diporani Section */}
+            {/* Anggota Diporani Section - Collapsed */}
             {groupedMembers.length > 0 && (
-              <div className="mb-8">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
-                    <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <details className="mb-8 group">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 transition-all hover:border-slate-700">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+                      <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-slate-100">Anggota Diporani</h2>
+                      <p className="text-sm text-slate-400">Total {members.length} anggota terdaftar</p>
+                    </div>
+                    <svg className="h-5 w-5 text-slate-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-100">Anggota Diporani</h2>
-                    <p className="text-sm text-slate-400">Total {members.length} anggota terdaftar</p>
-                  </div>
-                </div>
-                <div className="space-y-6">
+                </summary>
+                <div className="mt-4 space-y-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
                   {groupedMembers.map((group) => (
                     <div key={group.role}>
                       <div className="mb-3 flex items-center gap-2">
@@ -500,9 +518,21 @@ export default function DashboardPage() {
                             key={member.id}
                             className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all hover:border-slate-700 hover:bg-slate-900/80"
                           >
-                            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${group.color} text-sm font-bold text-white shadow-md`}>
-                              {getInitials(member.full_name)}
-                            </div>
+                            {member.avatar_url ? (
+                              <div className="relative h-10 w-10 flex-shrink-0">
+                                <Image
+                                  src={member.avatar_url}
+                                  alt={member.full_name || 'Avatar'}
+                                  fill
+                                  className="rounded-full object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${group.color} text-sm font-bold text-white shadow-md`}>
+                                {getInitials(member.full_name)}
+                              </div>
+                            )}
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-slate-100">
                                 {member.full_name || 'Tanpa Nama'}
@@ -517,7 +547,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </details>
             )}
 
             {/* Main Content Grid */}

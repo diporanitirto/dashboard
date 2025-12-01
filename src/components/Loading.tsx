@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 
-export default function Loading() {
+type LoadingProps = {
+  text?: string;
+};
+
+export default function Loading({ text }: LoadingProps) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -66,9 +70,13 @@ export default function Loading() {
         {/* Loading messages based on progress */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500 font-medium">
-            {progress < 40 && "Memuat data..."}
-            {progress >= 40 && progress < 80 && "Memproses..."}
-            {progress >= 80 && "Hampir selesai..."}
+            {text ? text : (
+              <>
+                {progress < 40 && "Memuat data..."}
+                {progress >= 40 && progress < 80 && "Memproses..."}
+                {progress >= 80 && "Hampir selesai..."}
+              </>
+            )}
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useProfile } from '@/components/ProfileProvider';
@@ -23,6 +24,12 @@ const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
 ] as const;
 
+const ChevronIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 export default function AnggotaPage() {
   const { profile, session, loading } = useProfile();
   const [members, setMembers] = useState<DashboardProfile[]>([]);
@@ -43,6 +50,11 @@ export default function AnggotaPage() {
   const [editJabatan, setEditJabatan] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   useEffect(() => {
     if (!session) return;
@@ -296,69 +308,122 @@ export default function AnggotaPage() {
         </div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
-          {filteredMembers.map((member) => (
+          {filteredMembers.map((member) => {
+            const isExpanded = expandedId === member.id;
+            return (
             <div
               key={member.id}
-              className="group rounded-2xl border border-slate-700 bg-slate-900/60 p-4 transition hover:border-slate-600 sm:rounded-3xl sm:p-6"
+              className="group rounded-2xl border border-slate-700 bg-slate-900/60 overflow-hidden transition hover:border-slate-600 sm:rounded-3xl"
             >
-              <div className="flex flex-col gap-2 sm:gap-4">
-                <div className="flex flex-wrap items-start justify-between gap-2 sm:items-center sm:gap-3">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <h3 className="text-base font-semibold text-slate-100 sm:text-lg">
+              {/* Main Row - Always Visible */}
+              <div 
+                className="flex items-center gap-3 p-4 cursor-pointer sm:p-5"
+                onClick={() => toggleExpand(member.id)}
+              >
+                {/* Avatar */}
+                {member.avatar_url ? (
+                  <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                    <Image
+                      src={member.avatar_url}
+                      alt={member.full_name || 'Avatar'}
+                      fill
+                      className="rounded-xl object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-sm font-bold text-emerald-400 sm:h-12 sm:w-12 sm:text-base">
+                    {(member.full_name || 'A').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+
+                {/* Name & Role Badge */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-100 truncate sm:text-base">
                       {member.full_name || 'Nama belum diisi'}
                     </h3>
-                    <span className="rounded-full bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 sm:px-3 sm:py-1 sm:text-xs">
+                    <span className="shrink-0 rounded-full bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 sm:px-2.5 sm:text-xs">
                       {ROLE_LABELS[member.role]}
                     </span>
-                    {(() => {
-                      return (
-                        <>
-                          {member.tingkatan && (
-                            <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-300 sm:px-3 sm:py-1 sm:text-xs">
-                              {TINGKATAN_LABELS[member.tingkatan] || 'Penegak'}
-                            </span>
-                          )}
-                          {member.jabatan && member.jabatan !== 'anggota' && (
-                            <span className="rounded-full bg-amber-900/50 px-2 py-0.5 text-[10px] font-semibold text-amber-400 sm:px-3 sm:py-1 sm:text-xs">
-                              {JABATAN_LABELS[member.jabatan] || member.jabatan}
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
                   </div>
+                  <p className="text-xs text-slate-500 truncate">
+                    {member.jabatan && member.jabatan !== 'anggota' 
+                      ? JABATAN_LABELS[member.jabatan] 
+                      : member.tingkatan 
+                        ? TINGKATAN_LABELS[member.tingkatan]
+                        : 'Anggota'}
+                  </p>
+                </div>
+
+                {/* Expand Icon */}
+                <ChevronIcon 
+                  className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                />
+              </div>
+
+              {/* Expanded Detail */}
+              {isExpanded && (
+                <div className="border-t border-slate-700/50 bg-slate-800/30 px-4 py-4 space-y-4 sm:px-5">
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl bg-slate-800/50 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Role</p>
+                      <p className="text-sm font-semibold text-emerald-400">{ROLE_LABELS[member.role]}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-800/50 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Tingkatan</p>
+                      <p className="text-sm font-semibold text-slate-200">
+                        {member.tingkatan ? TINGKATAN_LABELS[member.tingkatan] : '-'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-800/50 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Jabatan</p>
+                      <p className="text-sm font-semibold text-amber-400">
+                        {member.jabatan ? JABATAN_LABELS[member.jabatan] : '-'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-800/50 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Bergabung</p>
+                      <p className="text-sm font-semibold text-slate-200">{formatDate(member.created_at)}</p>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="rounded-xl bg-slate-800/50 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Email</p>
+                    <p className="text-sm text-slate-300 font-mono truncate">{member.email}</p>
+                  </div>
+
+                  {/* Bio */}
+                  {member.bio && (
+                    <div className="rounded-xl bg-slate-800/50 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Bio</p>
+                      <p className="text-sm text-slate-300">{member.bio}</p>
+                    </div>
+                  )}
+
+                  {/* Edit Button */}
                   {profile?.role === 'admin' && (
-                    <button
-                      onClick={() => openEditModal(member)}
-                      className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-emerald-500/20 hover:text-emerald-400 sm:opacity-0 sm:group-hover:opacity-100"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditModal(member);
+                        }}
+                        className="flex items-center gap-1.5 rounded-xl bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Anggota
+                      </button>
+                    </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-1 text-xs text-slate-400 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1 sm:text-sm">
-                  <span className="flex items-center gap-1 truncate">
-                    <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span className="truncate font-mono text-[10px] sm:text-xs">{member.email}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Bergabung {formatDate(member.created_at)}
-                  </span>
-                </div>
-                {member.bio && (
-                  <p className="text-xs text-slate-500 line-clamp-2 sm:text-sm">{member.bio}</p>
-                )}
-              </div>
+              )}
             </div>
-          ))}
+          )})}
         </div>
       )}
 

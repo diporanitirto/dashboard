@@ -67,6 +67,12 @@ const ArchiveIcon = () => (
 	</svg>
 );
 
+const PostsIcon = () => (
+	<svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+		<path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+	</svg>
+);
+
 const UsersIcon = () => (
 	<svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
 		<path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -99,6 +105,7 @@ const CollapseIcon = () => (
 
 const NAV_LINKS: NavLink[] = [
 	{ label: 'Beranda', href: '/', icon: <HomeIcon />, public: true },
+	{ label: 'Postingan', href: '/posts', icon: <PostsIcon />, public: true },
 	{ label: 'Agenda', href: '/agenda', icon: <CalendarIcon />, requiredRoles: ['bph'] },
 	{ label: 'Materi', href: '/materi', icon: <BookIcon />, requiredRoles: ['materi'] },
 	{ label: 'Dokumentasi', href: '/dokumentasi', icon: <CameraIcon />, requiredRoles: ['media'] },
@@ -108,9 +115,24 @@ const NAV_LINKS: NavLink[] = [
 	{ label: 'Profil', href: '/profil', icon: <UserIcon />, requiredRoles: ['bph', 'materi', 'media', 'anggota'] },
 ];
 
-const AvatarCircle = ({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) => {
+const AvatarCircle = ({ name, avatarUrl, size = 'md' }: { name: string; avatarUrl?: string | null; size?: 'sm' | 'md' }) => {
 	const initial = name.trim().charAt(0).toUpperCase() || 'A';
 	const sizeClasses = size === 'sm' ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm';
+	
+	if (avatarUrl) {
+		return (
+			<div className={`relative flex-shrink-0 ${sizeClasses}`}>
+				<Image
+					src={avatarUrl}
+					alt={name}
+					fill
+					className="rounded-full object-cover"
+					unoptimized
+				/>
+			</div>
+		);
+	}
+	
 	return (
 		<div className={`flex items-center justify-center rounded-full bg-emerald-500 font-semibold text-emerald-950 flex-shrink-0 ${sizeClasses}`}>
 			{initial}
@@ -146,6 +168,8 @@ export const Sidebar = () => {
 		return NAV_LINKS.filter((link) => {
 			if (link.public) return true;
 			if (!profile) return false;
+			// Admin can access everything
+			if (profile.role === 'admin') return true;
 			if (!link.requiredRoles) return Boolean(session);
 			return link.requiredRoles.includes(profile.role);
 		});
@@ -282,7 +306,7 @@ export const Sidebar = () => {
 					{session && profile ? (
 						<div className={`space-y-3 ${!isExpanded ? 'lg:space-y-2' : ''}`}>
 							<div className={`flex items-center gap-3 rounded-xl bg-slate-800/50 p-3 transition-all duration-300 ${!isExpanded ? 'lg:justify-center lg:p-2' : ''}`}>
-								<AvatarCircle name={profile.full_name ?? profile.email} size="sm" />
+								<AvatarCircle name={profile.full_name ?? profile.email} avatarUrl={profile.avatar_url} size="sm" />
 								<div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${isExpanded ? 'w-auto opacity-100' : 'lg:w-0 lg:opacity-0 lg:hidden'}`}>
 									<p className="truncate text-sm font-medium text-slate-100">
 										{profile.full_name ?? profile.email}

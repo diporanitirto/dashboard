@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -23,8 +24,23 @@ const NAV_LINKS: NavLink[] = [
 	{ label: 'Arsip', href: '/arsip', public: true },
 ];
 
-const AvatarCircle = ({ name }: { name: string }) => {
+const AvatarCircle = ({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) => {
 	const initial = name.trim().charAt(0).toUpperCase() || 'A';
+	
+	if (avatarUrl) {
+		return (
+			<div className="relative h-9 w-9 flex-shrink-0">
+				<Image
+					src={avatarUrl}
+					alt={name}
+					fill
+					className="rounded-full object-cover"
+					unoptimized
+				/>
+			</div>
+		);
+	}
+	
 	return (
 		<div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-emerald-950">
 			{initial}
@@ -75,7 +91,7 @@ export const TopNav = () => {
 				<div className="flex items-center gap-3">
 					{session && profile ? (
 						<div className="flex items-center gap-3">
-							<AvatarCircle name={profile.full_name ?? profile.email} />
+							<AvatarCircle name={profile.full_name ?? profile.email} avatarUrl={profile.avatar_url} />
 							<div className="hidden text-sm sm:flex sm:flex-col">
 								<span className="font-medium text-slate-100">{profile.full_name ?? profile.email}</span>
 								<span className="text-xs text-slate-400">{ROLE_LABELS[profile.role]}</span>

@@ -82,7 +82,7 @@ export default function Sidebar() {
           <Menu className="h-5 w-5" />
         </button>
         <Image src="/assets/logo-diporani.png" alt="Logo Diporani" width={28} height={28} className="rounded-md" />
-        <p className="font-bold">DIPORANI</p>
+        <p className="font-bold flex-1">DIPORANI</p>
       </div>
 
       {/* Mobile overlay */}

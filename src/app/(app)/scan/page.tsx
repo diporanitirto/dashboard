@@ -1,77 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import jsQR from "jsqr";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import QrScanner from "@/components/qr-scanner";
 import { notify } from "@/components/notifier";
 
 export default function ScanPage() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [scanned, setScanned] = useState(false);
-  const stopRef = useRef(false);
+  const [done, setDone] = useState(false);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let raf = 0;
-
-    async function start() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        const video = videoRef.current;
-        if (!video) return;
-        video.srcObject = stream;
-        await video.play();
-
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d", { willReadFrequently: true });
-        const tick = () => {
-          if (video.readyState === video.HAVE_ENOUGH_DATA && canvas && ctx) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(img.data, img.width, img.height);
-            if (code && !stopRef.current) {
-              const m = code.data.match(/\/verify\/([^/?#]+)/);
-              if (m) {
-                stopRef.current = true;
-                setScanned(true);
-                window.location.href = `/api/scan-handoff?id=${encodeURIComponent(m[1])}`;
-                return;
-              } else {
-                notify("QR tidak berisi URL verifikasi izin.");
-              }
-            }
-          }
-          raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      } catch {
-        notify("Tidak bisa mengakses kamera. Izinkan akses kamera lalu muat ulang.");
-      }
+  const handle = (text: string) => {
+    const m = text.match(/\/verify\/([^/?#]+)/);
+    if (m) {
+      setDone(true);
+      window.location.href = `/api/scan-handoff?id=${encodeURIComponent(m[1])}`;
+      return true;
     }
-
-    start();
-    return () => {
-      cancelAnimationFrame(raf);
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
+    notify("QR tidak berisi URL verifikasi izin.");
+    return false;
+  };
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Scan QR Izin</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Arahkan kamera ke QR pada surat</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {scanned && <p className="text-sm text-muted-foreground">Mengalihkan...</p>}
-          <video ref={videoRef} className="w-full max-w-md rounded-lg border" playsInline muted />
-          <canvas ref={canvasRef} className="hidden" />
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground">Arahkan kamera ke QR pada surat.</p>
+      {done ? <p className="text-sm">Mengalihkan...</p> : <div className="max-w-md"><QrScanner onDetected={handle} /></div>}
     </div>
   );
 }

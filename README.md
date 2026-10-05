@@ -30,7 +30,10 @@ Dashboard ini membaca data yang dikirim siswa lewat aplikasi [Surat Izin Pramuka
 - Jumlah izin per siswa dalam satuan minggu, dengan penanda untuk yang sudah tiga kali atau lebih.
 - Beranda berisi ringkasan: total siswa, pendamping kelas, izin minggu ini, izin bulan ini, dan pengajuan terbaru.
 - Manajemen data siswa dan pendamping kelas.
-- Akses dashboard dilindungi login admin.
+- Akses dashboard dilindungi login admin. Akun admin disimpan di tabel `admin_users` dan bisa dikelola dari menu **Akun Admin** (admin utama `diporani` bisa melihat password akun).
+- Menu **Scan QR** untuk memindai QR di surat izin dan langsung membuka halaman verifikasi — sesi login dashboard diteruskan otomatis. Di mobile ada tombol scan melayang di tengah bawah layar.
+- Notifikasi kanan atas untuk akun ditambah/dihapus, copy kredensial, dan izin baru masuk (polling tiap 15 detik).
+- Rekap hanya menghitung izin yang sudah **approved**.
 
 ## Tech Stack
 
@@ -59,9 +62,10 @@ Buka http://localhost:3000, lalu masuk dengan akun admin.
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key Supabase (fallback) |
-| `ADMIN_USER` | Username login admin |
-| `ADMIN_PASSWORD` | Password login admin |
 | `AUTH_SECRET` | Secret acak untuk sesi login |
+| `IZIN_APP_URL` | URL aplikasi izin (untuk redirect hasil scan QR) |
+
+Akun admin tidak lagi lewat env — buat/kelola lewat tabel `admin_users` (SQL ada di folder `../sql/03-admin-users.sql`) dan menu **Akun Admin** di dashboard.
 
 ## Terkait
 

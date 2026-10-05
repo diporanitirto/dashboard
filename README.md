@@ -65,7 +65,7 @@ Buka http://localhost:3000, lalu masuk dengan akun admin.
 | `AUTH_SECRET` | Secret acak untuk sesi login |
 | `IZIN_APP_URL` | URL aplikasi izin (untuk redirect hasil scan QR) |
 
-Akun admin tidak lagi lewat env — buat/kelola lewat tabel `admin_users` (SQL ada di folder `../sql/03-admin-users.sql`) dan menu **Akun Admin** di dashboard.
+Akun admin tidak lagi lewat env — buat/kelola lewat tabel `admin_users` dan menu **Akun Admin** di dashboard.
 
 ## Terkait
 

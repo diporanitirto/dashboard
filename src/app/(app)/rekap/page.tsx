@@ -50,9 +50,18 @@ export default async function RekapPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Rekap Izin</h1>
-          <p className="text-sm text-muted-foreground">Periode {periode} · hitungan reset tiap tanggal 1</p>
+          <p className="text-sm text-muted-foreground">Periode {periode} · izin bulan lalu otomatis diarsip, hitungan minggu reset tiap Senin</p>
         </div>
-        <RefreshControls />
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/rekap/export"
+            download
+            className="rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+          >
+            Download Excel
+          </a>
+          <RefreshControls />
+        </div>
       </div>
       <Card>
         <CardHeader>

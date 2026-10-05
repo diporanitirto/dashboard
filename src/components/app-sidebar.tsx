@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X, ScanQrCode } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const nav = [
   { href: "/pendamping", label: "Pendamping Kelas", icon: UserCog },
   { href: "/izin", label: "Izin", icon: FileCheck },
   { href: "/rekap", label: "Rekap", icon: FileSpreadsheet },
+  { href: "/scan", label: "Scan QR", icon: ScanQrCode },
 ];
 
 export default function Sidebar() {

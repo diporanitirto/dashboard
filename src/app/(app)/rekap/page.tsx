@@ -19,6 +19,7 @@ export default async function RekapPage() {
     .from("izin")
     .select("id, kelas, nis, nama, created_at")
     .eq("is_archived", false)
+    .eq("status", "approved")
     .gte("created_at", awalBulan);
 
   // 1 siswa izin berapa kali pun dalam seminggu dihitung 1

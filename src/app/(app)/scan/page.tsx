@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { notify } from "@/components/notifier";
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState("");
   const [scanned, setScanned] = useState(false);
   const stopRef = useRef(false);
 
@@ -37,11 +37,10 @@ export default function ScanPage() {
               if (m) {
                 stopRef.current = true;
                 setScanned(true);
-                setError("");
                 window.location.href = `/api/scan-handoff?id=${encodeURIComponent(m[1])}`;
                 return;
               } else {
-                setError("QR tidak berisi URL verifikasi izin.");
+                notify("QR tidak berisi URL verifikasi izin.");
               }
             }
           }
@@ -49,7 +48,7 @@ export default function ScanPage() {
         };
         raf = requestAnimationFrame(tick);
       } catch {
-        setError("Tidak bisa mengakses kamera. Izinkan akses kamera lalu muat ulang.");
+        notify("Tidak bisa mengakses kamera. Izinkan akses kamera lalu muat ulang.");
       }
     }
 
@@ -68,8 +67,7 @@ export default function ScanPage() {
           <CardTitle>Arahkan kamera ke QR pada surat</CardTitle>
         </CardHeader>
         <CardContent>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {scanned && !error && <p className="text-sm text-muted-foreground">Mengalihkan...</p>}
+          {scanned && <p className="text-sm text-muted-foreground">Mengalihkan...</p>}
           <video ref={videoRef} className="w-full max-w-md rounded-lg border" playsInline muted />
           <canvas ref={canvasRef} className="hidden" />
         </CardContent>

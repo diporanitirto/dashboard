@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X, ScanQrCode } from "lucide-react";
+import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X, ScanQrCode, ShieldCheck } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -13,11 +13,20 @@ const nav = [
   { href: "/izin", label: "Izin", icon: FileCheck },
   { href: "/rekap", label: "Rekap", icon: FileSpreadsheet },
   { href: "/scan", label: "Scan QR", icon: ScanQrCode },
+  { href: "/admin", label: "Akun Admin", icon: ShieldCheck },
 ];
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => setCurrentUser(d.username ?? null))
+      .catch(() => {});
+  }, [pathname]);
 
   const navContent = (
     <>
@@ -46,13 +55,18 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      {currentUser && (
+        <p className="mt-4 px-1 text-xs text-muted-foreground">
+          Masuk sebagai <span className="font-semibold text-foreground">{currentUser}</span>
+        </p>
+      )}
       <button
         type="button"
         onClick={async () => {
           await fetch("/api/logout", { method: "POST" });
           window.location.href = "/login";
         }}
-        className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
       >
         <LogOut className="h-4 w-4" />
         Keluar

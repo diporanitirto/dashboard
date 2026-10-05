@@ -6,13 +6,18 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) return NextResponse.next();
 
-  const user = process.env.ADMIN_USER ?? "";
-  const pass = process.env.ADMIN_PASSWORD ?? "";
   const secret = process.env.AUTH_SECRET ?? "pramuka";
-  const expected = btoa(`${user}:${pass}:${secret}`);
-
   const token = req.cookies.get("pramuka_session")?.value;
-  if (token !== expected) {
+  let ok = false;
+  if (token) {
+    try {
+      const parts = Buffer.from(token, "base64").toString("utf8").split(":");
+      ok = parts.length === 3 && parts[0] === "v2" && parts[2] === secret && parts[1].length > 0;
+    } catch {
+      ok = false;
+    }
+  }
+  if (!ok) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

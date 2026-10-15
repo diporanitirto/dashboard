@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X, ScanQrCode, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, UserCog, FileCheck, FileSpreadsheet, LogOut, Menu, X, ScanQrCode, ShieldCheck, TriangleAlert } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/siswa", label: "Siswa", icon: Users },
   { href: "/pendamping", label: "Pendamping Kelas", icon: UserCog },
   { href: "/izin", label: "Izin", icon: FileCheck },
+  { href: "/pelanggaran", label: "Pelanggaran", icon: TriangleAlert },
   { href: "/rekap", label: "Rekap", icon: FileSpreadsheet },
   { href: "/scan", label: "Scan QR", icon: ScanQrCode },
   { href: "/admin", label: "Akun Admin", icon: ShieldCheck },

@@ -101,8 +101,14 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama / NIS / jenis..."
             className={inputClass}
+            aria-label="Cari pelanggaran"
           />
-          <select value={kelas} onChange={(e) => setKelas(e.target.value)} className={inputClass}>
+          <select
+            value={kelas}
+            onChange={(e) => setKelas(e.target.value)}
+            className={inputClass}
+            aria-label="Filter kelas"
+          >
             <option value="">Semua kelas</option>
             {kelasOptions.map((k) => (
               <option key={k} value={k}>
@@ -110,11 +116,16 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
               </option>
             ))}
           </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className={inputClass}
+            aria-label="Filter status bukti"
+          >
             <option value="">Semua status bukti</option>
             {(Object.keys(BUKTI_STATUS_INFO) as BuktiStatus[]).map((s) => (
               <option key={s} value={s}>
-                {BUKTI_STATUS_INFO[s].label}
+                {s === "belum" ? "Belum unggah / Peringatan" : BUKTI_STATUS_INFO[s].label}
               </option>
             ))}
           </select>
@@ -135,13 +146,14 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
               const expanded = expandedId === r.id;
               const info = r.perlu_bukti
                 ? BUKTI_STATUS_INFO[r.bukti_status]
-                : { label: "Peringatan", className: "bg-blue-100 text-blue-700" };
+                : { label: "Peringatan", className: "bg-secondary text-secondary-foreground" };
               return (
                 <div key={r.id} className="overflow-hidden rounded-lg border">
                   <button
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : r.id)}
                     className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-accent/50"
+                    aria-expanded={expanded}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
@@ -216,7 +228,7 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
                       <div className="space-y-2">
                         {!r.perlu_bukti ? (
                           <p className="text-xs text-muted-foreground">
-                            Hanya peringatan — tidak perlu upload &amp; verifikasi bukti.
+                            Hanya peringatan, tidak perlu unggah bukti.
                           </p>
                         ) : r.bukti_url ? (
                           <div className="flex flex-wrap items-center gap-2">
@@ -234,18 +246,18 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
                                 onClick={() => setPreviewId(previewId === r.id ? null : r.id)}
                                 className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
                               >
-                                {previewId === r.id ? "Sembunyikan preview" : "Lihat preview foto"}
+                                {previewId === r.id ? "Tutup foto" : "Lihat foto"}
                               </button>
                             )}
                             {r.bukti_uploaded_at && (
                               <span className="text-xs text-muted-foreground">
-                                Diupload {formatTanggal(r.bukti_uploaded_at)} {formatJam(r.bukti_uploaded_at)}
+                                Diunggah {formatTanggal(r.bukti_uploaded_at)} {formatJam(r.bukti_uploaded_at)}
                               </span>
                             )}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">
-                            Belum ada bukti diupload siswa.
+                            Siswa belum unggah bukti.
                           </p>
                         )}
 
@@ -253,7 +265,7 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
                           <iframe
                             src={`https://drive.google.com/file/d/${r.bukti_file_id}/preview`}
                             className="h-80 w-full rounded-lg border bg-background"
-                            title={`Preview bukti ${r.nama}`}
+                            title={`Foto bukti ${r.nama}`}
                           />
                         )}
                       </div>
@@ -287,7 +299,7 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
                           type="button"
                           disabled={pending}
                           onClick={() => doHapus(r)}
-                          className="rounded-md border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-60"
+                          className="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-60"
                         >
                           Hapus Catatan
                         </button>

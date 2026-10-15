@@ -82,7 +82,7 @@ export default function TabRekap({ rows, tahap }: Props) {
           href="/api/pelanggaran/export"
           className="rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
         >
-          Download Excel (Rekap + Riwayat)
+          Unduh Excel (rekap + riwayat)
         </a>
       </div>
 

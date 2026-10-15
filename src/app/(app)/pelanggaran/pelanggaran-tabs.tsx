@@ -26,7 +26,7 @@ export default function PelanggaranTabs(props: Props) {
         <TabsTrigger value="daftar" className="flex-none px-3">
           Daftar & Verifikasi
           {menunggu > 0 && (
-            <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[0.6rem] font-bold text-white">
+            <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[0.6rem] font-bold text-amber-800">
               {menunggu}
             </span>
           )}

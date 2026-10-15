@@ -4,7 +4,7 @@ import { getSupabase } from "@/lib/supabase";
 import { tahapUntukPoin, type PelanggaranRow, type TahapHukuman } from "@/lib/pelanggaran";
 
 const STATUS_LABEL: Record<string, string> = {
-  belum: "Belum upload",
+  belum: "Belum unggah",
   menunggu: "Menunggu verifikasi",
   selesai: "Selesai",
   ditolak: "Ditolak",

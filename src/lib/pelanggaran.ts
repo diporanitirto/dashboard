@@ -46,7 +46,7 @@ export interface SiswaOption {
 }
 
 export const BUKTI_STATUS_INFO: Record<BuktiStatus, { label: string; className: string }> = {
-  belum: { label: "Belum upload", className: "bg-muted text-muted-foreground" },
+  belum: { label: "Belum unggah", className: "bg-muted text-muted-foreground" },
   menunggu: { label: "Menunggu verifikasi", className: "bg-amber-100 text-amber-700" },
   selesai: { label: "Selesai", className: "bg-emerald-100 text-emerald-700" },
   ditolak: { label: "Ditolak", className: "bg-destructive/10 text-destructive" },

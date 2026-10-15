@@ -55,12 +55,13 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
   };
 
   return (
-    <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2 rounded-lg border p-2">
+    <div className="grid grid-cols-[minmax(0,1fr)_5rem_auto] items-center gap-2 rounded-lg border p-2">
       <input
         value={nama}
         onChange={(e) => setNama(e.target.value)}
         className={inputClass}
         aria-label="Nama jenis"
+        title={nama}
       />
       <input
         type="number"
@@ -76,7 +77,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           type="button"
           disabled={pending || !dirty}
           onClick={() => simpan(j.aktif)}
-          className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+          className="rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
         >
           Simpan
         </button>
@@ -85,7 +86,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           disabled={pending}
           onClick={() => simpan(!j.aktif)}
           title={j.aktif ? "Klik untuk nonaktifkan" : "Klik untuk aktifkan"}
-          className={`rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-40 ${
+          className={`rounded-md border px-2 py-1.5 text-xs font-medium disabled:opacity-40 ${
             j.aktif ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-muted-foreground"
           }`}
         >
@@ -95,7 +96,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           type="button"
           disabled={pending}
           onClick={hapus}
-          className="rounded-md border px-2.5 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
+          className="rounded-md border px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
         >
           Hapus
         </button>
@@ -151,13 +152,14 @@ function TahapRow({ t }: { t: TahapHukuman }) {
         onChange={(e) => setHukuman(e.target.value)}
         className={inputClass}
         aria-label="Hukuman"
+        title={hukuman}
       />
       <div className="flex items-center gap-1">
         <button
           type="button"
           disabled={pending || !dirty}
           onClick={simpan}
-          className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+          className="rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
         >
           Simpan
         </button>
@@ -165,7 +167,7 @@ function TahapRow({ t }: { t: TahapHukuman }) {
           type="button"
           disabled={pending}
           onClick={hapus}
-          className="rounded-md border px-2.5 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
+          className="rounded-md border px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
         >
           Hapus
         </button>
@@ -216,15 +218,14 @@ export default function TabPengaturan({ jenis, tahap }: Props) {
   };
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
       <Card>
         <CardHeader>
           <CardTitle>Jenis Pelanggaran & Poin</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Semua pelanggaran default 1 poin. Ubah poin per jenis di sini — poin juga masih bisa diubah
-            saat mencatat.
+            Setiap jenis standarnya 1 poin, bisa diubah di sini atau saat mencatat.
           </p>
 
           <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2">
@@ -272,7 +273,8 @@ export default function TabPengaturan({ jenis, tahap }: Props) {
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Hukuman berlaku mulai total poin tertentu. Contoh: mulai 1 poin &quot;Peringatan&quot;, mulai 3
-            poin &quot;Push up 30x&quot;. Hukuman yang tersimpan di catatan lama tidak berubah.
+            poin &quot;Push up 30x&quot;. Tahap dengan poin terkecil otomatis tanpa wajib unggah bukti;
+            hukuman yang tersimpan di catatan lama tidak berubah.
           </p>
 
           <div className="grid grid-cols-[5rem_1fr_auto] items-center gap-2">

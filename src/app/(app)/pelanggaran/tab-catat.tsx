@@ -178,7 +178,7 @@ export default function TabCatat({ jenis, tahap, siswaList, rows }: Props) {
                 onChange={(e) => pilihJenis(e.target.value)}
                 className={inputClass}
               >
-                <option value="">— Pilih jenis —</option>
+                <option value="">Pilih jenis…</option>
                 {jenisAktif.map((j) => (
                   <option key={j.id} value={j.id}>
                     {j.nama} ({j.poin} poin)
@@ -233,16 +233,16 @@ export default function TabCatat({ jenis, tahap, siswaList, rows }: Props) {
               {siswa ? (
                 <div className="space-y-1">
                   <p>
-                    <span className="font-semibold">{siswa.nama}</span> ({siswa.kelas}) sudah{" "}
-                    {catatanSiswa.length} catatan • total saat ini{" "}
+                    <span className="font-semibold">{siswa.nama}</span> ({siswa.kelas}) punya{" "}
+                    {catatanSiswa.length} catatan, total saat ini{" "}
                     <span className="font-semibold">{totalSekarang} poin</span>
                   </p>
                   <p>
-                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} poin</span> — hukuman
+                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} poin</span>. Hukuman
                     berlaku:{" "}
                     <span className="font-semibold">{hukumanPrediksi?.hukuman ?? "tidak ada"}</span>
-                    {hukumanPrediksi && !perluBuktiPrediksi && " (hanya peringatan, tanpa bukti)"}
-                    {hukumanPrediksi && perluBuktiPrediksi && " (perlu upload bukti)"}
+                    {hukumanPrediksi && !perluBuktiPrediksi && " (tanpa bukti)"}
+                    {hukumanPrediksi && perluBuktiPrediksi && " (perlu unggah bukti)"}
                   </p>
                 </div>
               ) : (

@@ -15,7 +15,7 @@ import { hapusPelanggaran, verifikasiBukti } from "./actions";
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
 
-export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
+export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [q, setQ] = useState("");
   const [kelas, setKelas] = useState("");
   const [status, setStatus] = useState("");
@@ -158,11 +158,14 @@ export default function TabDaftar({ rows }: { rows: PelanggaranRow[] }) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
                         {r.nama}
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        <span className="ml-2 hidden text-xs font-normal text-muted-foreground sm:inline">
                           {r.kelas} • {r.nis}
                         </span>
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
+                        <span className="sm:hidden">
+                          {r.kelas} • {r.nis} •{" "}
+                        </span>
                         {r.jenis_nama ?? "Pelanggaran"} • +{r.poin} poin • {formatTanggal(r.tanggal)}{" "}
                         {formatJam(r.created_at)}
                       </p>

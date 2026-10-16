@@ -23,7 +23,7 @@ interface Props {
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
 
-export default function TabCatat({ jenis, tahap, siswaList, rows }: Props) {
+export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
   const [query, setQuery] = useState("");
   const [siswa, setSiswa] = useState<SiswaOption | null>(null);
   const [jenisId, setJenisId] = useState("");

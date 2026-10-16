@@ -23,7 +23,7 @@ interface RekapSiswa {
   menunggu: number;
 }
 
-export default function TabRekap({ rows, tahap }: Props) {
+export default function Rekap({ rows, tahap }: Props) {
   const perSiswa = useMemo(() => {
     const map = new Map<number, RekapSiswa>();
     for (const r of rows) {
@@ -95,7 +95,41 @@ export default function TabRekap({ rows, tahap }: Props) {
           {perSiswa.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Belum ada data.</p>
           ) : (
-            <table className="w-full text-sm">
+            <>
+              <div className="space-y-2 sm:hidden">
+                {perSiswa.map((s) => {
+                  const hukuman = tahapUntukPoin(s.total, tahap);
+                  return (
+                    <div key={s.siswa_id} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{s.nama}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.kelas ?? "-"} • {s.nis ?? "-"}
+                          </p>
+                        </div>
+                        {s.menunggu > 0 && (
+                          <span className="shrink-0 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            {s.menunggu} menunggu
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        <span className="text-muted-foreground">
+                          Catatan: <span className="font-medium text-foreground">{s.jumlah}</span>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Total poin: <span className="font-semibold text-foreground">{s.total}</span>
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Hukuman: <span className="font-medium text-foreground">{hukuman?.hukuman ?? "-"}</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            <table className="hidden w-full text-sm sm:table">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="py-2 pr-3">Nama</th>
@@ -132,6 +166,7 @@ export default function TabRekap({ rows, tahap }: Props) {
                 })}
               </tbody>
             </table>
+            </>
           )}
         </CardContent>
       </Card>
@@ -145,7 +180,21 @@ export default function TabRekap({ rows, tahap }: Props) {
           {perKelas.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Belum ada data.</p>
           ) : (
-            <table className="w-full text-sm">
+            <>
+              <div className="space-y-2 sm:hidden">
+                {perKelas.map((k) => (
+                  <div key={k.kelas} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{k.kelas}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {k.siswa.size} siswa • {k.jumlahCatatan} catatan
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold">{k.totalPoin} poin</p>
+                  </div>
+                ))}
+              </div>
+            <table className="hidden w-full text-sm sm:table">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="py-2 pr-3">Kelas</th>
@@ -165,6 +214,7 @@ export default function TabRekap({ rows, tahap }: Props) {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </CardContent>
       </Card>

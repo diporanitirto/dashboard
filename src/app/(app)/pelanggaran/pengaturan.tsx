@@ -55,11 +55,11 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
   };
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_5rem_auto] items-center gap-2 rounded-lg border p-2">
+    <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
       <input
         value={nama}
         onChange={(e) => setNama(e.target.value)}
-        className={inputClass}
+        className={`${inputClass} col-span-2 sm:col-span-1`}
         aria-label="Nama jenis"
         title={nama}
       />
@@ -72,7 +72,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
         className={inputClass}
         aria-label="Poin"
       />
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <button
           type="button"
           disabled={pending || !dirty}
@@ -138,23 +138,23 @@ function TahapRow({ t }: { t: TahapHukuman }) {
   };
 
   return (
-    <div className="grid grid-cols-[5rem_1fr_auto] items-center gap-2 rounded-lg border p-2">
+    <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[5rem_1fr_auto]">
       <input
         type="number"
         min={1}
         value={minPoin}
         onChange={(e) => setMinPoin(e.target.value)}
-        className={inputClass}
+        className={`${inputClass} order-2 sm:order-none`}
         aria-label="Minimal poin"
       />
       <input
         value={hukuman}
         onChange={(e) => setHukuman(e.target.value)}
-        className={inputClass}
+        className={`${inputClass} order-1 col-span-2 sm:order-none sm:col-span-1`}
         aria-label="Hukuman"
         title={hukuman}
       />
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <button
           type="button"
           disabled={pending || !dirty}
@@ -176,7 +176,7 @@ function TahapRow({ t }: { t: TahapHukuman }) {
   );
 }
 
-export default function TabPengaturan({ jenis, tahap }: Props) {
+export default function Pengaturan({ jenis, tahap }: Props) {
   const [namaBaru, setNamaBaru] = useState("");
   const [poinBaru, setPoinBaru] = useState("1");
   const [minPoinBaru, setMinPoinBaru] = useState("");
@@ -228,7 +228,7 @@ export default function TabPengaturan({ jenis, tahap }: Props) {
             Setiap jenis standarnya 1 poin, bisa diubah di sini atau saat mencatat.
           </p>
 
-          <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2">
+          <div className="grid grid-cols-[1fr_4.5rem_auto] items-center gap-2 sm:grid-cols-[1fr_5rem_auto]">
             <input
               value={namaBaru}
               onChange={(e) => setNamaBaru(e.target.value)}
@@ -277,7 +277,7 @@ export default function TabPengaturan({ jenis, tahap }: Props) {
             hukuman yang tersimpan di catatan lama tidak berubah.
           </p>
 
-          <div className="grid grid-cols-[5rem_1fr_auto] items-center gap-2">
+          <div className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-2 sm:grid-cols-[5rem_1fr_auto]">
             <input
               type="number"
               min={1}

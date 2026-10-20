@@ -12,7 +12,7 @@ import {
   type SiswaOption,
   type TahapHukuman,
 } from "@/lib/pelanggaran";
-import { catatPelanggaran } from "./actions";
+import { catatPelanggaran, tambahJenis } from "./actions";
 import SiswaForm from "../siswa/siswa-form";
 
 interface Props {
@@ -41,8 +41,11 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
   const [keterangan, setKeterangan] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [jenisList, setJenisList] = useState(jenis);
+  const [namaJenisBaru, setNamaJenisBaru] = useState("");
+  const [pendingJenis, startJenisTransition] = useTransition();
 
-  const jenisAktif = useMemo(() => jenis.filter((j) => j.aktif), [jenis]);
+  const jenisAktif = useMemo(() => jenisList.filter((j) => j.aktif), [jenisList]);
 
   const hasilCari = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,6 +78,30 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+  };
+
+  const tambahJenisBaru = () => {
+    const nama = namaJenisBaru.trim();
+    if (!nama) return;
+    const fd = new FormData();
+    fd.set("nama", nama);
+    fd.set("poin", "1");
+
+    startJenisTransition(async () => {
+      const res = await tambahJenis(fd);
+      if (res.ok && res.id) {
+        setJenisList((prev) => [...prev, { id: res.id!, nama, poin: 1, aktif: true }]);
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.add(res.id!);
+          return next;
+        });
+        setNamaJenisBaru("");
+        notify(`Jenis "${nama}" ditambahkan.`);
+      } else {
+        notify(res.error ?? "Gagal menambah jenis.");
+      }
     });
   };
 
@@ -226,35 +253,62 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                   Belum ada jenis aktif. Tambah dulu di tab Pengaturan.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {jenisAktif.map((j) => {
-                    const selected = selectedIds.has(j.id);
-                    return (
-                      <button
-                        key={j.id}
-                        type="button"
-                        onClick={() => toggleJenis(j.id)}
-                        className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                          selected
-                            ? "border-primary bg-primary/10"
-                            : "hover:bg-accent/60"
-                        }`}
-                        aria-pressed={selected}
-                      >
-                        <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                <>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {jenisAktif.map((j) => {
+                      const selected = selectedIds.has(j.id);
+                      return (
+                        <button
+                          key={j.id}
+                          type="button"
+                          onClick={() => toggleJenis(j.id)}
+                          className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             selected
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-muted-foreground/40 bg-background"
+                              ? "border-primary bg-primary/10"
+                              : "hover:bg-accent/60"
                           }`}
+                          aria-pressed={selected}
                         >
-                          {selected && <Check className="h-3.5 w-3.5" />}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">{j.nama}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-muted-foreground/40 bg-background"
+                            }`}
+                          >
+                            {selected && <Check className="h-3.5 w-3.5" />}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-medium">{j.nama}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tambah jenis baru langsung dari sini */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={namaJenisBaru}
+                      onChange={(e) => setNamaJenisBaru(e.target.value)}
+                      placeholder="Jenis baru, contoh: Terlambat"
+                      className={inputClass}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          tambahJenisBaru();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={pendingJenis || !namaJenisBaru.trim()}
+                      onClick={tambahJenisBaru}
+                      className="shrink-0 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+                      title="Tambah jenis pelanggaran"
+                    >
+                      +
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 

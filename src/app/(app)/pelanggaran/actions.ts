@@ -9,6 +9,7 @@ import { perluBuktiUntukPoin, tahapUntukPoin, type TahapHukuman } from "@/lib/pe
 export interface ActionResult {
   ok: boolean;
   error?: string;
+  id?: number;
 }
 
 /** Pastikan hanya petugas yang login bisa memanggil server action ini. */
@@ -183,15 +184,19 @@ export async function tambahJenis(formData: FormData): Promise<ActionResult> {
   if (!nama) return { ok: false, error: "Nama jenis wajib diisi." };
 
   const supabase = getSupabase();
-  const { error } = await supabase.from("jenis_pelanggaran").insert({ nama, poin: 1 });
-  if (error) {
-    if (error.code === "23505") return { ok: false, error: "Jenis dengan nama itu sudah ada." };
+  const { data, error } = await supabase
+    .from("jenis_pelanggaran")
+    .insert({ nama, poin: 1 })
+    .select("id")
+    .single();
+  if (error || !data) {
+    if (error?.code === "23505") return { ok: false, error: "Jenis dengan nama itu sudah ada." };
     console.error("tambahJenis error:", error);
     return { ok: false, error: "Gagal menambah jenis." };
   }
 
   revalidatePath("/pelanggaran");
-  return { ok: true };
+  return { ok: true, id: data.id };
 }
 
 export async function ubahJenis(formData: FormData): Promise<ActionResult> {

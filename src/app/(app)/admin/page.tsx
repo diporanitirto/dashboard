@@ -88,7 +88,7 @@ export default function AdminPage() {
             <ul className="divide-y">
               {users.map((u) => (
                 <li key={u.username} className="flex items-center justify-between py-2 text-sm">
-                  <span>{u.username}{canViewPassword && u.password ? ` — ${u.password}` : ""}</span>
+                  <span>{u.username}{canViewPassword && u.password ? ` · ${u.password}` : ""}</span>
                   <div className="flex items-center gap-3">
                     {canViewPassword && u.password && (
                       <button

@@ -46,6 +46,10 @@ export default async function PelanggaranSectionPage({
     (k.siswa ?? []).map((s) => ({ id: s.id, nis: s.nis, nama: s.nama, kelas: k.nama }))
   );
 
+  const kelas: { id: number; nama: string }[] = (kelasRes.data ?? []).map(
+    (k: { id: number; nama: string }) => ({ id: k.id, nama: k.nama })
+  );
+
   const jenis = (jenisRes.data ?? []) as JenisPelanggaran[];
   const tahap = (tahapRes.data ?? []) as TahapHukuman[];
   const rows = (rowsRes.data ?? []) as PelanggaranRow[];
@@ -56,13 +60,13 @@ export default async function PelanggaranSectionPage({
         <div>
           <h1 className="text-2xl font-bold">Pelanggaran</h1>
           <p className="text-sm text-muted-foreground">
-            Catat pelanggaran, verifikasi bukti hukuman, dan pantau poin siswa.
+            Catat pelanggaran, verifikasi bukti hukuman, dan pantau catatan siswa.
           </p>
         </div>
         <RefreshControls />
       </div>
 
-      {section === "catat" && <Catat jenis={jenis} tahap={tahap} siswaList={siswaList} rows={rows} />}
+      {section === "catat" && <Catat jenis={jenis} tahap={tahap} kelas={kelas} siswaList={siswaList} rows={rows} />}
       {section === "daftar" && <Daftar rows={rows} />}
       {section === "rekap" && <Rekap rows={rows} tahap={tahap} />}
       {section === "pengaturan" && <Pengaturan jenis={jenis} tahap={tahap} />}

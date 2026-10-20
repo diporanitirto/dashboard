@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
@@ -14,6 +15,30 @@ import { hapusPelanggaran, verifikasiBukti } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
+
+/** Satu baris info label + nilai. */
+function Info({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="text-sm leading-snug">{value}</p>
+    </div>
+  );
+}
+
+/** Kartu bagian detail dengan judul kecil. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-background/60 p-3">
+      <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
 
 export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [q, setQ] = useState("");
@@ -40,13 +65,19 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
         !(
           r.nama.toLowerCase().includes(s) ||
           (r.nis ?? "").includes(s) ||
-          (r.jenis_nama ?? "").toLowerCase().includes(s)
+          (r.jenis_nama ?? "").toLowerCase().includes(s) ||
+          (r.hukuman ?? "").toLowerCase().includes(s)
         )
       )
         return false;
       return true;
     });
   }, [rows, q, kelas, status]);
+
+  const menungguCount = useMemo(
+    () => rows.filter((r) => r.perlu_bukti && r.bukti_status === "menunggu").length,
+    [rows]
+  );
 
   const doVerifikasi = (row: PelanggaranRow, newStatus: "selesai" | "ditolak", note = "") => {
     const fd = new FormData();
@@ -59,7 +90,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
       if (res.ok) {
         notify(
           newStatus === "selesai"
-            ? `Hukuman ${row.nama} ditandai selesai.`
+            ? `Tugas ${row.nama} disetujui.`
             : `Bukti ${row.nama} ditolak.`
         );
         setRejectId(null);
@@ -91,7 +122,16 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daftar Pelanggaran & Verifikasi Bukti</CardTitle>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Daftar Pelanggaran & Verifikasi Tugas</CardTitle>
+            {menungguCount > 0 && (
+              <p className="mt-1 text-xs text-amber-700">
+                {menungguCount} tugas menunggu verifikasi
+              </p>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Filter */}
@@ -99,7 +139,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Cari nama / NIS / jenis..."
+            placeholder="Cari nama / NIS / jenis / hukuman..."
             className={inputClass}
             aria-label="Cari pelanggaran"
           />
@@ -148,7 +188,12 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                 ? BUKTI_STATUS_INFO[r.bukti_status]
                 : { label: "Peringatan", className: "bg-secondary text-secondary-foreground" };
               return (
-                <div key={r.id} className="overflow-hidden rounded-lg border">
+                <div
+                  key={r.id}
+                  className={`overflow-hidden rounded-lg border transition-colors ${
+                    expanded ? "border-primary/40" : ""
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : r.id)}
@@ -166,9 +211,14 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                         <span className="sm:hidden">
                           {r.kelas} • {r.nis} •{" "}
                         </span>
-                        {r.jenis_nama ?? "Pelanggaran"} • +{r.poin} poin • {formatTanggal(r.tanggal)}{" "}
+                        {r.jenis_nama ?? "Pelanggaran"} • {formatTanggal(r.tanggal)}{" "}
                         {formatJam(r.created_at)}
                       </p>
+                      {r.hukuman && (
+                        <p className="mt-0.5 truncate text-xs italic text-muted-foreground/80">
+                          Tugas: {r.hukuman}
+                        </p>
+                      )}
                     </div>
                     <span className={`shrink-0 rounded-md px-2 py-0.5 text-[0.65rem] font-medium ${info.className}`}>
                       {info.label}
@@ -183,95 +233,136 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                   </button>
 
                   {expanded && (
-                    <div className="space-y-3 border-t bg-muted/30 p-4">
-                      <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-                        <div>
-                          <p className="text-muted-foreground">Poin</p>
-                          <p className="font-medium">+{r.poin}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Total poin saat itu</p>
-                          <p className="font-medium">{r.total_poin ?? "-"}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Hukuman saat itu</p>
-                          <p className="font-medium">{r.hukuman ?? "Tidak ada"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Dicatat oleh</p>
-                          <p className="font-medium">{r.dicatat_oleh ?? "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Diverifikasi oleh</p>
-                          <p className="font-medium">{r.verified_by ?? "-"}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Waktu verifikasi</p>
-                          <p className="font-medium">
-                            {r.verified_at ? `${formatTanggal(r.verified_at)} ${formatJam(r.verified_at)}` : "-"}
+                    <div className="space-y-3 border-t bg-muted/20 p-4">
+                      {/* Baris 1: Siswa + status */}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold">{r.nama}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {r.kelas ?? "-"} • NIS {r.nis ?? "-"}
                           </p>
                         </div>
-                        {r.keterangan && (
-                          <div className="col-span-2 sm:col-span-4">
-                            <p className="text-muted-foreground">Keterangan</p>
-                            <p className="mt-1 rounded-lg border bg-background p-2.5">{r.keterangan}</p>
-                          </div>
-                        )}
-                        {r.bukti_status === "ditolak" && r.bukti_note && (
-                          <div className="col-span-2 sm:col-span-4">
-                            <p className="text-muted-foreground">Alasan ditolak</p>
-                            <p className="mt-1 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-destructive">
-                              {r.bukti_note}
+                        <span
+                          className={`shrink-0 self-start rounded-md px-2.5 py-1 text-xs font-medium ${info.className}`}
+                        >
+                          {info.label}
+                        </span>
+                      </div>
+
+                      {/* Seksi Pelanggaran */}
+                      <Section title="Pelanggaran">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          <Info label="Jenis" value={r.jenis_nama ?? "-"} />
+                          <Info label="Total catatan saat itu" value={r.total_poin ?? "-"} />
+                          <Info
+                            label="Tanggal"
+                            value={`${formatTanggal(r.tanggal)} ${formatJam(r.created_at)}`}
+                          />
+                          <Info label="Dicatat oleh" value={r.dicatat_oleh ?? "-"} />
+                          {r.keterangan && (
+                            <div className="col-span-2 sm:col-span-3">
+                              <Info label="Keterangan" value={r.keterangan} />
+                            </div>
+                          )}
+                        </div>
+                      </Section>
+
+                      {/* Seksi Hukuman / Tugas (paling penting, ditonjolkan) */}
+                      <Section title="Hukuman / Tugas">
+                        {r.hukuman ? (
+                          <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 dark:bg-amber-950/20">
+                            <p className="text-sm font-medium leading-snug">{r.hukuman}</p>
+                            <p className="mt-1.5 text-xs text-muted-foreground">
+                              {r.perlu_bukti
+                                ? "Siswa wajib unggah bukti penyelesaian tugas."
+                                : "Hanya peringatan, tidak perlu unggah bukti."}
                             </p>
                           </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Tidak ada hukuman.</p>
                         )}
-                      </div>
+                      </Section>
 
-                      {/* Bukti */}
-                      <div className="space-y-2">
-                        {!r.perlu_bukti ? (
-                          <p className="text-xs text-muted-foreground">
-                            Hanya peringatan, tidak perlu unggah bukti.
-                          </p>
-                        ) : r.bukti_url ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <a
-                              href={r.bukti_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
-                            >
-                              Buka di Google Drive
-                            </a>
-                            {r.bukti_file_id && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewId(previewId === r.id ? null : r.id)}
-                                className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+                      {/* Seksi Bukti */}
+                      {r.perlu_bukti && (
+                        <Section title="Bukti Tugas">
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                              <span
+                                className={`rounded-md px-2 py-0.5 text-xs font-medium ${info.className}`}
                               >
-                                {previewId === r.id ? "Tutup foto" : "Lihat foto"}
-                              </button>
-                            )}
-                            {r.bukti_uploaded_at && (
-                              <span className="text-xs text-muted-foreground">
-                                Diunggah {formatTanggal(r.bukti_uploaded_at)} {formatJam(r.bukti_uploaded_at)}
+                                {info.label}
                               </span>
+                              {r.bukti_uploaded_at && (
+                                <span className="text-xs text-muted-foreground">
+                                  Diunggah {formatTanggal(r.bukti_uploaded_at)}{" "}
+                                  {formatJam(r.bukti_uploaded_at)}
+                                </span>
+                              )}
+                            </div>
+
+                            {!r.bukti_url ? (
+                              <p className="text-sm text-muted-foreground">
+                                Siswa belum unggah bukti.
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <a
+                                  href={r.bukti_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+                                >
+                                  Buka di Google Drive
+                                </a>
+                                {r.bukti_file_id && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPreviewId(previewId === r.id ? null : r.id)
+                                    }
+                                    className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+                                  >
+                                    {previewId === r.id ? "Tutup foto" : "Lihat foto"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {previewId === r.id && r.bukti_file_id && (
+                              <iframe
+                                src={`https://drive.google.com/file/d/${r.bukti_file_id}/preview`}
+                                className="h-80 w-full rounded-lg border bg-background"
+                                title={`Foto bukti ${r.nama}`}
+                              />
+                            )}
+
+                            {r.bukti_status === "ditolak" && r.bukti_note && (
+                              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-sm text-destructive">
+                                <p className="text-xs font-medium">Alasan ditolak:</p>
+                                <p className="mt-0.5">{r.bukti_note}</p>
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            Siswa belum unggah bukti.
-                          </p>
-                        )}
+                        </Section>
+                      )}
 
-                        {previewId === r.id && r.bukti_file_id && (
-                          <iframe
-                            src={`https://drive.google.com/file/d/${r.bukti_file_id}/preview`}
-                            className="h-80 w-full rounded-lg border bg-background"
-                            title={`Foto bukti ${r.nama}`}
-                          />
-                        )}
-                      </div>
+                      {/* Seksi Verifikasi */}
+                      {(r.verified_by || r.verified_at) && (
+                        <Section title="Verifikasi">
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            <Info label="Diverifikasi oleh" value={r.verified_by ?? "-"} />
+                            <Info
+                              label="Waktu verifikasi"
+                              value={
+                                r.verified_at
+                                  ? `${formatTanggal(r.verified_at)} ${formatJam(r.verified_at)}`
+                                  : "-"
+                              }
+                            />
+                          </div>
+                        </Section>
+                      )}
 
                       {/* Aksi */}
                       <div className="flex flex-wrap items-center gap-2 border-t pt-3">
@@ -280,9 +371,9 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                             type="button"
                             disabled={pending}
                             onClick={() => doVerifikasi(r, "selesai")}
-                            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                           >
-                            Setujui / Tandai Selesai
+                            Setujui Tugas
                           </button>
                         )}
                         {r.perlu_bukti && r.bukti_status === "menunggu" && (
@@ -293,7 +384,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                               setRejectId(rejectId === r.id ? null : r.id);
                               setRejectNote("");
                             }}
-                            className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-white hover:bg-destructive/80 disabled:opacity-60"
+                            className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-white hover:bg-destructive/80 disabled:opacity-60"
                           >
                             Tolak Bukti
                           </button>
@@ -302,7 +393,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                           type="button"
                           disabled={pending}
                           onClick={() => doHapus(r)}
-                          className="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                          className="rounded-md border px-4 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-60"
                         >
                           Hapus Catatan
                         </button>
@@ -322,7 +413,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                               type="button"
                               disabled={pending}
                               onClick={() => doVerifikasi(r, "ditolak", rejectNote)}
-                              className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-white hover:bg-destructive/80 disabled:opacity-60"
+                              className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/80 disabled:opacity-60"
                             >
                               Kirim Penolakan
                             </button>
@@ -333,7 +424,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                                 setRejectId(null);
                                 setRejectNote("");
                               }}
-                              className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-60"
+                              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-60"
                             >
                               Batal
                             </button>

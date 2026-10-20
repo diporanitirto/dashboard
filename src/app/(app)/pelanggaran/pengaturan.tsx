@@ -23,16 +23,15 @@ interface Props {
 
 function JenisRow({ j }: { j: JenisPelanggaran }) {
   const [nama, setNama] = useState(j.nama);
-  const [poin, setPoin] = useState(String(j.poin));
   const [pending, startTransition] = useTransition();
 
-  const dirty = nama !== j.nama || poin !== String(j.poin);
+  const dirty = nama !== j.nama;
 
   const simpan = (aktif: boolean) => {
     const fd = new FormData();
     fd.set("id", String(j.id));
     fd.set("nama", nama);
-    fd.set("poin", poin);
+    fd.set("poin", "1");
     fd.set("aktif", String(aktif));
 
     startTransition(async () => {
@@ -55,22 +54,13 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
   };
 
   return (
-    <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_auto]">
       <input
         value={nama}
         onChange={(e) => setNama(e.target.value)}
-        className={`${inputClass} col-span-2 sm:col-span-1`}
+        className={inputClass}
         aria-label="Nama jenis"
         title={nama}
-      />
-      <input
-        type="number"
-        min={1}
-        max={100}
-        value={poin}
-        onChange={(e) => setPoin(e.target.value)}
-        className={inputClass}
-        aria-label="Poin"
       />
       <div className="flex flex-wrap items-center gap-1">
         <button
@@ -178,7 +168,6 @@ function TahapRow({ t }: { t: TahapHukuman }) {
 
 export default function Pengaturan({ jenis, tahap }: Props) {
   const [namaBaru, setNamaBaru] = useState("");
-  const [poinBaru, setPoinBaru] = useState("1");
   const [minPoinBaru, setMinPoinBaru] = useState("");
   const [hukumanBaru, setHukumanBaru] = useState("");
   const [pending, startTransition] = useTransition();
@@ -186,14 +175,13 @@ export default function Pengaturan({ jenis, tahap }: Props) {
   const tambahJenisBaru = () => {
     const fd = new FormData();
     fd.set("nama", namaBaru);
-    fd.set("poin", poinBaru);
+    fd.set("poin", "1");
 
     startTransition(async () => {
       const res = await tambahJenis(fd);
       if (res.ok) {
         notify(`Jenis "${namaBaru}" ditambahkan.`);
         setNamaBaru("");
-        setPoinBaru("1");
       } else {
         notify(res.error ?? "Gagal menambah jenis.");
       }
@@ -221,34 +209,25 @@ export default function Pengaturan({ jenis, tahap }: Props) {
     <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Jenis Pelanggaran & Poin</CardTitle>
+          <CardTitle>Jenis Pelanggaran</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Setiap jenis standarnya 1 poin, bisa diubah di sini atau saat mencatat.
+            Setiap catatan pelanggaran bernilai 1, berapapun jenis yang dipilih sekaligus. Jenis hanya untuk label.
           </p>
 
-          <div className="grid grid-cols-[1fr_4.5rem_auto] items-center gap-2 sm:grid-cols-[1fr_5rem_auto]">
+          <div className="flex items-center gap-2">
             <input
               value={namaBaru}
               onChange={(e) => setNamaBaru(e.target.value)}
               placeholder="Jenis baru, contoh: Terlambat"
               className={inputClass}
             />
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={poinBaru}
-              onChange={(e) => setPoinBaru(e.target.value)}
-              className={inputClass}
-              aria-label="Poin jenis baru"
-            />
             <button
               type="button"
               disabled={pending || !namaBaru.trim()}
               onClick={tambahJenisBaru}
-              className="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+              className="shrink-0 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
             >
               Tambah
             </button>

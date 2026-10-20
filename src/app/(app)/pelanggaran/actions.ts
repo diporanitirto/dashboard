@@ -22,7 +22,7 @@ async function petugasLogin(): Promise<string | null> {
 /**
  * Sesuaikan catatan yang belum diproses (bukti_status 'belum') dengan tabel tahap
  * terbaru. Dipanggil setiap kali pengaturan tahap hukuman berubah, supaya siswa
- * langsung bisa upload bukti untuk hukuman yang sedang berlaku — misalnya saat
+ * langsung bisa upload bukti untuk hukuman yang sedang berlaku, misalnya saat
  * hukuman tahap baru ditambahkan setelah catatan lama sudah tercatat.
  * Catatan yang sudah diproses (menunggu/selesai/ditolak) tidak diubah.
  */
@@ -56,26 +56,34 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
   if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };
 
   const siswaId = Number(formData.get("siswa_id"));
-  const jenisId = Number(formData.get("jenis_id"));
-  const poin = Math.round(Number(formData.get("poin")));
+  const jenisIdsRaw = String(formData.get("jenis_ids") ?? "").trim();
+  const jenisIds = jenisIdsRaw
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
   const tanggal = String(formData.get("tanggal") ?? "").trim();
   const keterangan = String(formData.get("keterangan") ?? "").trim();
 
-  if (!siswaId || !jenisId) return { ok: false, error: "Siswa dan jenis pelanggaran wajib dipilih." };
-  if (!Number.isFinite(poin) || poin <= 0 || poin > 100) {
-    return { ok: false, error: "Poin harus angka 1-100." };
-  }
+  if (!siswaId || jenisIds.length === 0) return { ok: false, error: "Siswa dan jenis pelanggaran wajib dipilih." };
+
+  // 1 catatan pelanggaran = 1 poin, berapapun jenis yang dipilih.
+  const poin = 1;
 
   const supabase = getSupabase();
-  const [{ data: siswa }, { data: jenis }, { data: poinSebelumnya }, { data: tahapList }] = await Promise.all([
+  const [{ data: siswa }, { data: jenisList }, { data: poinSebelumnya }, { data: tahapList }] = await Promise.all([
     supabase.from("siswa").select("id, nis, nama, kelas(nama)").eq("id", siswaId).maybeSingle(),
-    supabase.from("jenis_pelanggaran").select("id, nama").eq("id", jenisId).maybeSingle(),
+    supabase.from("jenis_pelanggaran").select("id, nama").in("id", jenisIds),
     supabase.from("pelanggaran").select("poin").eq("siswa_id", siswaId),
     supabase.from("tahap_hukuman").select("id, min_poin, hukuman").order("min_poin", { ascending: true }),
   ]);
 
   if (!siswa) return { ok: false, error: "Siswa tidak ditemukan." };
-  if (!jenis) return { ok: false, error: "Jenis pelanggaran tidak ditemukan." };
+  if (!jenisList || jenisList.length === 0) return { ok: false, error: "Jenis pelanggaran tidak ditemukan." };
+
+  // Gabungkan nama jenis yang dipilih, urut sesuai input.
+  const namaById = new Map(jenisList.map((j) => [j.id, j.nama]));
+  const namaTerpilih = jenisIds.map((id) => namaById.get(id)).filter(Boolean) as string[];
+  const jenisNama = namaTerpilih.join(", ");
 
   const totalPoin = (poinSebelumnya ?? []).reduce((sum, r) => sum + (r.poin ?? 0), 0) + poin;
   const tahapList2 = (tahapList ?? []) as TahapHukuman[];
@@ -93,8 +101,8 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     nis: siswa.nis,
     nama: siswa.nama,
     kelas: kelasNama,
-    jenis_id: jenis.id,
-    jenis_nama: jenis.nama,
+    jenis_id: jenisIds[0],
+    jenis_nama: jenisNama,
     poin,
     total_poin: totalPoin,
     hukuman,
@@ -172,12 +180,10 @@ export async function tambahJenis(formData: FormData): Promise<ActionResult> {
   if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };
 
   const nama = String(formData.get("nama") ?? "").trim();
-  const poin = Math.round(Number(formData.get("poin") ?? 1));
   if (!nama) return { ok: false, error: "Nama jenis wajib diisi." };
-  if (!Number.isFinite(poin) || poin <= 0 || poin > 100) return { ok: false, error: "Poin harus angka 1-100." };
 
   const supabase = getSupabase();
-  const { error } = await supabase.from("jenis_pelanggaran").insert({ nama, poin });
+  const { error } = await supabase.from("jenis_pelanggaran").insert({ nama, poin: 1 });
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Jenis dengan nama itu sudah ada." };
     console.error("tambahJenis error:", error);
@@ -194,14 +200,12 @@ export async function ubahJenis(formData: FormData): Promise<ActionResult> {
 
   const id = Number(formData.get("id"));
   const nama = String(formData.get("nama") ?? "").trim();
-  const poin = Math.round(Number(formData.get("poin")));
   const aktif = String(formData.get("aktif")) === "true";
 
   if (!id || !nama) return { ok: false, error: "Data tidak valid." };
-  if (!Number.isFinite(poin) || poin <= 0 || poin > 100) return { ok: false, error: "Poin harus angka 1-100." };
 
   const supabase = getSupabase();
-  const { error } = await supabase.from("jenis_pelanggaran").update({ nama, poin, aktif }).eq("id", id);
+  const { error } = await supabase.from("jenis_pelanggaran").update({ nama, poin: 1, aktif }).eq("id", id);
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Jenis dengan nama itu sudah ada." };
     console.error("ubahJenis error:", error);

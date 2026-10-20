@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Check, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
 import {
@@ -12,10 +13,12 @@ import {
   type TahapHukuman,
 } from "@/lib/pelanggaran";
 import { catatPelanggaran } from "./actions";
+import SiswaForm from "../siswa/siswa-form";
 
 interface Props {
   jenis: JenisPelanggaran[];
   tahap: TahapHukuman[];
+  kelas: { id: number; nama: string }[];
   siswaList: SiswaOption[];
   rows: PelanggaranRow[];
 }
@@ -23,11 +26,12 @@ interface Props {
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
 
-export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
+export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
   const [query, setQuery] = useState("");
+  const [daftar, setDaftar] = useState(siswaList);
+  const [tambahTerbuka, setTambahTerbuka] = useState(false);
   const [siswa, setSiswa] = useState<SiswaOption | null>(null);
-  const [jenisId, setJenisId] = useState("");
-  const [poin, setPoin] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10));
   const [keterangan, setKeterangan] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +39,19 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
 
   const jenisAktif = useMemo(() => jenis.filter((j) => j.aktif), [jenis]);
 
+  // Gabungkan siswa baru dari server (setelah revalidate) tanpa menghapus tambahan lokal.
+  useEffect(() => {
+    setDaftar((prev) => {
+      const ada = new Set(prev.map((s) => s.id));
+      const baru = siswaList.filter((s) => !ada.has(s.id));
+      return baru.length ? [...prev, ...baru] : prev;
+    });
+  }, [siswaList]);
+
   const hasilCari = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return siswaList.slice(0, 8);
-    return siswaList
+    if (!q) return daftar.slice(0, 8);
+    return daftar
       .filter(
         (s) =>
           s.nama.toLowerCase().includes(q) ||
@@ -46,7 +59,7 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
           s.kelas.toLowerCase().includes(q)
       )
       .slice(0, 12);
-  }, [query, siswaList]);
+  }, [query, daftar]);
 
   const catatanSiswa = useMemo(
     () => rows.filter((r) => r.siswa_id === siswa?.id),
@@ -54,24 +67,28 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
   );
   const totalSekarang = catatanSiswa.reduce((sum, r) => sum + (r.poin ?? 0), 0);
 
-  const poinAngka = Math.min(100, Math.max(0, Math.round(Number(poin) || 0)));
+  const POIN_PER_CATATAN = 1;
+  const poinAngka = selectedIds.size > 0 ? POIN_PER_CATATAN : 0;
   const totalPrediksi = totalSekarang + poinAngka;
   const hukumanPrediksi = tahapUntukPoin(totalPrediksi, tahap);
   const perluBuktiPrediksi = perluBuktiUntukPoin(totalPrediksi, tahap);
 
-  const pilihJenis = (value: string) => {
-    setJenisId(value);
-    const j = jenis.find((x) => String(x.id) === value);
-    if (j) setPoin(String(j.poin));
+  const toggleJenis = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const resetForm = () => {
     setSiswa(null);
     setQuery("");
-    setJenisId("");
-    setPoin("");
+    setSelectedIds(new Set());
     setKeterangan("");
     setError(null);
+    setTambahTerbuka(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -82,19 +99,19 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
       setError("Pilih siswa dulu.");
       return;
     }
-    if (!jenisId) {
-      setError("Pilih jenis pelanggaran.");
+    if (selectedIds.size === 0) {
+      setError("Pilih minimal satu jenis pelanggaran.");
       return;
     }
     if (poinAngka <= 0) {
-      setError("Poin minimal 1.");
+      setError("Pilih minimal satu jenis pelanggaran.");
       return;
     }
 
     const fd = new FormData();
     fd.set("siswa_id", String(siswa.id));
-    fd.set("jenis_id", jenisId);
-    fd.set("poin", String(poinAngka));
+    fd.set("jenis_ids", [...selectedIds].join(","));
+    fd.set("poin", "1");
     fd.set("tanggal", tanggal);
     fd.set("keterangan", keterangan);
 
@@ -108,6 +125,8 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
       }
     });
   };
+
+  const selectedJenisList = jenisAktif.filter((j) => selectedIds.has(j.id));
 
   return (
     <Card>
@@ -154,8 +173,9 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
                         onClick={() => {
                           setSiswa(s);
                           setQuery("");
+                          setTambahTerbuka(false);
                         }}
-                        className="flex w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent/60"
+                        className="flex min-h-11 w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         <span className="truncate font-medium">{s.nama}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
@@ -164,7 +184,37 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
                       </button>
                     ))
                   )}
+                  {query.trim().length >= 2 && !tambahTerbuka && (
+                    <button
+                      type="button"
+                      onClick={() => setTambahTerbuka(true)}
+                      className="flex min-h-11 w-full items-center border-t px-3 py-2 text-left text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <Plus className="mr-1.5 h-3.5 w-3.5" />
+                      {`Tambah siswa baru "${query.trim()}"`}
+                    </button>
+                  )}
                 </div>
+                {tambahTerbuka && (
+                  <SiswaForm
+                    kelasList={kelas}
+                    awalNama={query.trim()}
+                    embedded
+                    onSukses={(s) => {
+                      const baru: SiswaOption = {
+                        id: s.id,
+                        nis: s.nis,
+                        nama: s.nama,
+                        kelas: s.kelas_nama ?? "",
+                      };
+                      setDaftar((prev) => [...prev, baru]);
+                      setSiswa(baru);
+                      setQuery("");
+                      setTambahTerbuka(false);
+                    }}
+                    onBatal={() => setTambahTerbuka(false)}
+                  />
+                )}
               </>
             )}
           </div>
@@ -172,38 +222,47 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
           {/* Detail pelanggaran */}
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Jenis Pelanggaran</label>
-              <select
-                value={jenisId}
-                onChange={(e) => pilihJenis(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Pilih jenis…</option>
-                {jenisAktif.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.nama} ({j.poin} poin)
-                  </option>
-                ))}
-              </select>
-              {jenisAktif.length === 0 && (
+              <label className="text-xs font-medium text-muted-foreground">
+                Jenis Pelanggaran (bisa pilih lebih dari satu)
+              </label>
+              {jenisAktif.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   Belum ada jenis aktif. Tambah dulu di tab Pengaturan.
                 </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {jenisAktif.map((j) => {
+                    const selected = selectedIds.has(j.id);
+                    return (
+                      <button
+                        key={j.id}
+                        type="button"
+                        onClick={() => toggleJenis(j.id)}
+                        className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                          selected
+                            ? "border-primary bg-primary/10"
+                            : "hover:bg-accent/60"
+                        }`}
+                        aria-pressed={selected}
+                      >
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-muted-foreground/40 bg-background"
+                          }`}
+                        >
+                          {selected && <Check className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{j.nama}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Poin</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={poin}
-                  onChange={(e) => setPoin(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
                 <input
@@ -235,10 +294,15 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
                   <p>
                     <span className="font-semibold">{siswa.nama}</span> ({siswa.kelas}) punya{" "}
                     {catatanSiswa.length} catatan, total saat ini{" "}
-                    <span className="font-semibold">{totalSekarang} poin</span>
+                    <span className="font-semibold">{totalSekarang} catatan</span>
                   </p>
+                  {selectedJenisList.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Dipilih: {selectedJenisList.map((j) => j.nama).join(", ")}
+                    </p>
+                  )}
                   <p>
-                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} poin</span>. Hukuman
+                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} catatan</span>. Hukuman
                     berlaku:{" "}
                     <span className="font-semibold">{hukumanPrediksi?.hukuman ?? "tidak ada"}</span>
                     {hukumanPrediksi && !perluBuktiPrediksi && " (tanpa bukti)"}
@@ -246,7 +310,7 @@ export default function Catat({ jenis, tahap, siswaList, rows }: Props) {
                   </p>
                 </div>
               ) : (
-                <p className="text-muted-foreground">Pilih siswa untuk melihat perhitungan poin & hukuman.</p>
+                <p className="text-muted-foreground">Pilih siswa untuk melihat perhitungan catatan & hukuman.</p>
               )}
             </div>
 

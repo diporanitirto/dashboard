@@ -51,7 +51,11 @@ export default function Notifier() {
 
   if (toasts.length === 0) return null;
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-4 right-4 z-50 flex flex-col gap-2"
+    >
       {toasts.map((t) => (
         <div key={t.id} className="rounded-lg border bg-card px-4 py-3 text-sm shadow-lg">
           {t.msg}

@@ -1,6 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import DaftarSiswa, { type KelasDenganSiswa } from "./daftar-siswa";
 
 export const dynamic = "force-dynamic";
 
@@ -8,44 +7,33 @@ export default async function SiswaPage() {
   if (!isSupabaseConfigured()) {
     return <p className="text-muted-foreground">Supabase belum dikonfigurasi.</p>;
   }
-  const supabase = getSupabase();
-  const { data: kelasList } = await supabase.from("kelas").select("id, nama, siswa(id, nis, nama, jk, agama)").order("nama");
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Siswa</h1>
-      {kelasList?.map((kelas: any) => (
-        <Card key={kelas.id}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Kelas {kelas.nama}
-              <Badge variant="secondary">{kelas.siswa?.length ?? 0} siswa</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground">
-                  <th className="py-1">NIS</th>
-                  <th>Nama</th>
-                  <th>JK</th>
-                  <th>Agama</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kelas.siswa?.map((s: any) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="py-1.5">{s.nis}</td>
-                    <td>{s.nama}</td>
-                    <td>{s.jk}</td>
-                    <td>{s.agama}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+  const supabase = getSupabase();
+  const { data: kelasList, error } = await supabase
+    .from("kelas")
+    .select("id, nama, siswa(id, nis, nama, jk, agama, kelas_id)")
+    .order("nama");
+
+  if (error) {
+    console.error("Gagal memuat data siswa:", error.message);
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-bold">Siswa</h1>
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-red-700"
+        >
+          Gagal memuat data siswa. Periksa koneksi lalu muat ulang halaman.
+        </p>
+        <a
+          href="/siswa"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border px-4 text-sm text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          Coba lagi
+        </a>
+      </div>
+    );
+  }
+
+  return <DaftarSiswa kelasList={(kelasList ?? []) as KelasDenganSiswa[]} />;
 }

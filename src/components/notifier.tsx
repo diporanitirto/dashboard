@@ -12,7 +12,6 @@ export default function Notifier() {
   const nextId = useRef(1);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
 
     const addToast = (msg: string) => {
       const id = nextId.current++;
@@ -41,7 +40,7 @@ export default function Notifier() {
       } catch {}
     };
     poll();
-    timer = setInterval(poll, 15000);
+    const timer = setInterval(poll, 15000);
 
     return () => {
       window.removeEventListener("app-notify", onNotify);

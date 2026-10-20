@@ -1,11 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faPowerOff, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faPowerOff, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import TambahPendamping from "./tambah";
 import MoveButton from "./move-button";
 import { hapusPendamping, toggleAktifPendamping } from "./actions";
+
+type PendampingRow = { id: number; nama: string; kontak: string | null; aktif: boolean };
+type KelasRow = { id: number; nama: string; pendamping: PendampingRow[] | null };
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +22,9 @@ export default async function PendampingPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Pendamping Kelas</h1>
-      <TambahPendamping kelasList={(kelasList ?? []).map((k: any) => ({ id: k.id, nama: k.nama }))} />
+      <TambahPendamping kelasList={(kelasList ?? []).map((k: KelasRow) => ({ id: k.id, nama: k.nama }))} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {kelasList?.map((kelas: any) => (
+        {kelasList?.map((kelas: KelasRow) => (
           <Card key={kelas.id}>
             <CardHeader>
               <CardTitle>
@@ -31,7 +34,7 @@ export default async function PendampingPage() {
             <CardContent>
               {kelas.pendamping && kelas.pendamping.length > 0 ? (
                 <ul className="space-y-2 text-sm">
-                  {kelas.pendamping.map((p: any) => (
+                  {kelas.pendamping.map((p: PendampingRow) => (
                     <li key={p.id} className="space-y-1.5 border-b pb-2 last:border-0">
                       <span className="flex items-center gap-2">
                         <form action={hapusPendamping}>
@@ -56,7 +59,7 @@ export default async function PendampingPage() {
                         <MoveButton
                           pkId={p.id}
                           nama={p.nama}
-                          kelasList={(kelasList ?? []).filter((k: any) => k.id !== kelas.id).map((k: any) => ({ id: k.id, nama: k.nama }))}
+                          kelasList={(kelasList ?? []).filter((k: KelasRow) => k.id !== kelas.id).map((k: KelasRow) => ({ id: k.id, nama: k.nama }))}
                         />
                       </span>
                     </li>

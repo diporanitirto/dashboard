@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Check, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
@@ -28,7 +28,12 @@ const inputClass =
 
 export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
   const [query, setQuery] = useState("");
-  const [daftar, setDaftar] = useState(siswaList);
+  const [tambahan, setTambahan] = useState<SiswaOption[]>([]);
+  const daftar = useMemo(() => {
+    const ids = new Set(siswaList.map((s) => s.id));
+    const extras = tambahan.filter((s) => !ids.has(s.id));
+    return [...siswaList, ...extras];
+  }, [siswaList, tambahan]);
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
   const [siswa, setSiswa] = useState<SiswaOption | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -38,15 +43,6 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
   const [pending, startTransition] = useTransition();
 
   const jenisAktif = useMemo(() => jenis.filter((j) => j.aktif), [jenis]);
-
-  // Gabungkan siswa baru dari server (setelah revalidate) tanpa menghapus tambahan lokal.
-  useEffect(() => {
-    setDaftar((prev) => {
-      const ada = new Set(prev.map((s) => s.id));
-      const baru = siswaList.filter((s) => !ada.has(s.id));
-      return baru.length ? [...prev, ...baru] : prev;
-    });
-  }, [siswaList]);
 
   const hasilCari = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -207,7 +203,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                         nama: s.nama,
                         kelas: s.kelas_nama ?? "",
                       };
-                      setDaftar((prev) => [...prev, baru]);
+                      setTambahan((prev) => [...prev, baru]);
                       setSiswa(baru);
                       setQuery("");
                       setTambahTerbuka(false);

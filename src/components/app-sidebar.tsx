@@ -47,10 +47,6 @@ export default function Sidebar() {
   const [pelanggaranOpen, setPelanggaranOpen] = useState(true);
 
   useEffect(() => {
-    if (inPelanggaran) setPelanggaranOpen(true);
-  }, [inPelanggaran]);
-
-  useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((d) => setCurrentUser(d.username ?? null))

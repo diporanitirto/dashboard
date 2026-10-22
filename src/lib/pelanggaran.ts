@@ -13,6 +13,15 @@ export interface TahapHukuman {
 
 export type BuktiStatus = "belum" | "menunggu" | "selesai" | "ditolak";
 
+export interface BuktiFile {
+  file_id: string;
+  url: string;
+  /** Foto hasil upload, link video, atau folder Drive berisi beberapa foto. Data lama tidak punya field ini. */
+  kind?: "image" | "video" | "folder";
+  /** Jumlah foto di dalam folder (khusus kind folder). */
+  count?: number;
+}
+
 export interface PelanggaranRow {
   id: string;
   siswa_id: number;
@@ -28,6 +37,7 @@ export interface PelanggaranRow {
   keterangan: string | null;
   bukti_file_id: string | null;
   bukti_url: string | null;
+  bukti_files: BuktiFile[] | null;
   bukti_status: BuktiStatus;
   bukti_note: string | null;
   bukti_uploaded_at: string | null;
@@ -43,6 +53,16 @@ export interface SiswaOption {
   nis: string;
   nama: string;
   kelas: string;
+}
+
+/** Daftar bukti (foto/video), dengan fallback ke kolom lama (satu file). */
+export function daftarBukti(
+  row: Pick<PelanggaranRow, "bukti_files" | "bukti_file_id" | "bukti_url">
+): BuktiFile[] {
+  const files = (row.bukti_files ?? []).filter((file) => Boolean(file?.url));
+  if (files.length > 0) return files;
+  if (row.bukti_url) return [{ file_id: row.bukti_file_id ?? "", url: row.bukti_url }];
+  return [];
 }
 
 export const BUKTI_STATUS_INFO: Record<BuktiStatus, { label: string; className: string }> = {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getSupabase } from "@/lib/supabase";
-import { tahapUntukPoin, type PelanggaranRow, type TahapHukuman } from "@/lib/pelanggaran";
+import { daftarBukti, tahapUntukPoin, type PelanggaranRow, type TahapHukuman } from "@/lib/pelanggaran";
 
 const STATUS_LABEL: Record<string, string> = {
   belum: "Belum unggah",
@@ -80,7 +80,7 @@ export async function GET() {
       r.perlu_bukti ? STATUS_LABEL[r.bukti_status] ?? r.bukti_status : "Tanpa bukti (peringatan)",
       r.bukti_note ?? "-",
       r.keterangan ?? "-",
-      r.bukti_url ?? "-",
+      daftarBukti(r).map((file) => file.url).join("\n") || "-",
       r.dicatat_oleh ?? "-",
     ]),
   ];

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
 import {
   BUKTI_STATUS_INFO,
+  daftarBukti,
   formatJam,
   formatTanggal,
   type BuktiStatus,
@@ -45,7 +46,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [kelas, setKelas] = useState("");
   const [status, setStatus] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [pending, startTransition] = useTransition();
@@ -187,6 +188,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
               const info = r.perlu_bukti
                 ? BUKTI_STATUS_INFO[r.bukti_status]
                 : { label: "Peringatan", className: "bg-secondary text-secondary-foreground" };
+              const files = daftarBukti(r);
               return (
                 <div
                   key={r.id}
@@ -301,40 +303,68 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                               )}
                             </div>
 
-                            {!r.bukti_url ? (
+                            {files.length === 0 ? (
                               <p className="text-sm text-muted-foreground">
                                 Siswa belum unggah bukti.
                               </p>
                             ) : (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <a
-                                  href={r.bukti_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
-                                >
-                                  Buka di Google Drive
-                                </a>
-                                {r.bukti_file_id && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPreviewId(previewId === r.id ? null : r.id)
-                                    }
-                                    className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
-                                  >
-                                    {previewId === r.id ? "Tutup foto" : "Lihat foto"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                              <div className="space-y-2">
+                                {files.map((file, index) => {
+                                  const key = `${r.id}-${file.file_id || index}`;
+                                  return (
+                                    <div key={key} className="space-y-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        {(files.length > 1 || file.kind === "video" || file.kind === "folder") && (
+                                          <span className="text-xs font-medium text-muted-foreground">
+                                            {file.kind === "video"
+                                              ? "Video"
+                                              : file.kind === "folder"
+                                                ? `Folder foto${file.count ? ` (${file.count})` : ""}`
+                                                : `Foto ${index + 1}`}
+                                          </span>
+                                        )}
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+                                        >
+                                          {file.kind === "video"
+                                            ? "Buka video di Drive"
+                                            : file.kind === "folder"
+                                              ? "Buka folder di Google Drive"
+                                              : "Buka di Google Drive"}
+                                        </a>
+                                        {file.file_id && file.kind !== "folder" && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setPreviewKey(previewKey === key ? null : key)
+                                            }
+                                            className="rounded-md border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+                                          >
+                                            {previewKey === key ? "Tutup media" : "Lihat media"}
+                                          </button>
+                                        )}
+                                      </div>
 
-                            {previewId === r.id && r.bukti_file_id && (
-                              <iframe
-                                src={`https://drive.google.com/file/d/${r.bukti_file_id}/preview`}
-                                className="h-80 w-full rounded-lg border bg-background"
-                                title={`Foto bukti ${r.nama}`}
-                              />
+                                      {file.kind === "folder" && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Semua foto ada di folder ini.
+                                        </p>
+                                      )}
+
+                                      {previewKey === key && file.file_id && file.kind !== "folder" && (
+                                        <iframe
+                                          src={`https://drive.google.com/file/d/${file.file_id}/preview`}
+                                          className="h-80 w-full rounded-lg border bg-background"
+                                          title={`Media bukti ${index + 1} ${r.nama}`}
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             )}
 
                             {r.bukti_status === "ditolak" && r.bukti_note && (

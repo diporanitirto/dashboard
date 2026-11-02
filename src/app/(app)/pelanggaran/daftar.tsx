@@ -76,8 +76,11 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
       return true;
     });
     const sorted = [...list];
-    // Peringatan (perlu_bukti false) selalu di bawah; sisanya terbaru dulu.
+    // Menunggu verifikasi selalu paling atas; peringatan (perlu_bukti false) di bawah; sisanya terbaru dulu.
     sorted.sort((a, b) => {
+      const ma = a.bukti_status === 'menunggu' ? 0 : 1;
+      const mb = b.bukti_status === 'menunggu' ? 0 : 1;
+      if (ma !== mb) return ma - mb;
       const pa = a.perlu_bukti ? 0 : 1;
       const pb = b.perlu_bukti ? 0 : 1;
       if (pa !== pb) return pa - pb;

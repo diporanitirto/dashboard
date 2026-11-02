@@ -42,3 +42,6 @@ next-env.d.ts
 /supabase
 # sql migrations (local only)
 /sql/
+
+# import scripts (local only)
+/scripts/

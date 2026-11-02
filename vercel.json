@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/proses-deadline",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

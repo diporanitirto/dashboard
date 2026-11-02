@@ -39,6 +39,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10));
   const [keterangan, setKeterangan] = useState("");
+  const [deadlineHari, setDeadlineHari] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [jenisList, setJenisList] = useState(jenis);
@@ -110,6 +111,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
     setQuery("");
     setSelectedIds(new Set());
     setKeterangan("");
+    setDeadlineHari("");
     setError(null);
     setTambahTerbuka(false);
   };
@@ -137,6 +139,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
     fd.set("poin", "1");
     fd.set("tanggal", tanggal);
     fd.set("keterangan", keterangan);
+    if (deadlineHari.trim()) fd.set("deadline_hari", deadlineHari.trim());
 
     startTransition(async () => {
       const res = await catatPelanggaran(fd);
@@ -334,6 +337,25 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                 className={inputClass}
               />
             </div>
+
+            {perluBuktiPrediksi && (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Deadline tugas (hari) <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={deadlineHari}
+                  onChange={(e) => setDeadlineHari(e.target.value)}
+                  placeholder="Contoh: 7"
+                  className={inputClass}
+                />
+                <p className="text-[0.7rem] text-muted-foreground">
+                  Jika tugas tidak selesai sampai deadline, anggota sangga lain otomatis mendapat tugas yang sama.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Preview & submit */}

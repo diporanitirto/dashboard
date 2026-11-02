@@ -46,6 +46,10 @@ export interface PelanggaranRow {
   dicatat_oleh: string | null;
   tanggal: string;
   created_at: string;
+  deadline: string | null;
+  deadline_hari: number | null;
+  sangga_propagated_at: string | null;
+  asal_pelanggaran_id: string | null;
 }
 
 export interface SiswaOption {

@@ -12,7 +12,7 @@ import {
   type BuktiStatus,
   type PelanggaranRow,
 } from "@/lib/pelanggaran";
-import { hapusPelanggaran, verifikasiBukti } from "./actions";
+import { hapusPelanggaran, prosesDeadlineSangga, verifikasiBukti } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
@@ -50,6 +50,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [pending, startTransition] = useTransition();
+  const [prosesMsg, setProsesMsg] = useState<string | null>(null);
 
   const kelasOptions = useMemo(
     () => [...new Set(rows.map((r) => r.kelas).filter(Boolean))].sort() as string[],
@@ -102,6 +103,20 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
     });
   };
 
+  const doProsesDeadline = () => {
+    startTransition(async () => {
+      setProsesMsg(null);
+      const res = await prosesDeadlineSangga();
+      if (res.ok) {
+        setProsesMsg(`Selesai. ${res.jumlah ?? 0} tugas sangga dibuat.`);
+        notify(`Proses deadline selesai. ${res.jumlah ?? 0} tugas sangga dibuat.`);
+      } else {
+        setProsesMsg(res.error ?? "Gagal memproses.");
+        notify(res.error ?? "Gagal memproses.");
+      }
+    });
+  };
+
   const doHapus = (row: PelanggaranRow) => {
     if (!confirm(`Hapus catatan "${row.jenis_nama}" milik ${row.nama}? Poin akan hilang dari rekap.`)) {
       return;
@@ -131,7 +146,19 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                 {menungguCount} tugas menunggu verifikasi
               </p>
             )}
+            {prosesMsg && (
+              <p className="mt-1 text-xs text-muted-foreground">{prosesMsg}</p>
+            )}
           </div>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={doProsesDeadline}
+            className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
+            title="Buat tugas sangga untuk pelanggaran yang lewat deadline"
+          >
+            Proses Deadline Sangga
+          </button>
         </div>
       </CardHeader>
       <CardContent>
@@ -261,6 +288,17 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                             value={`${formatTanggal(r.tanggal)} ${formatJam(r.created_at)}`}
                           />
                           <Info label="Dicatat oleh" value={r.dicatat_oleh ?? "-"} />
+                          {r.deadline && (
+                            <Info
+                              label="Deadline"
+                              value={`${formatTanggal(r.deadline)}${r.sangga_propagated_at ? " (dipropagasi)" : ""}`}
+                            />
+                          )}
+                          {r.asal_pelanggaran_id && (
+                            <div className="col-span-2 sm:col-span-3">
+                              <Info label="Sumber" value="Tugas sangga otomatis (deadline asal lewat)" />
+                            </div>
+                          )}
                           {r.keterangan && (
                             <div className="col-span-2 sm:col-span-3">
                               <Info label="Keterangan" value={r.keterangan} />

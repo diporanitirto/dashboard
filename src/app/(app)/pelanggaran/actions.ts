@@ -33,9 +33,10 @@ async function syncHukumanBelum(): Promise<void> {
     supabase.from("tahap_hukuman").select("id, min_poin, hukuman").order("min_poin", { ascending: true }),
     supabase
       .from("pelanggaran")
-      .select("id, total_poin, hukuman, perlu_bukti")
+      .select("id, total_poin, hukuman, perlu_bukti, asal_pelanggaran_id")
       .eq("bukti_status", "belum")
-      .not("total_poin", "is", null),
+      .not("total_poin", "is", null)
+      .is("asal_pelanggaran_id", null),
   ]);
 
   const tahap = (tahapList ?? []) as TahapHukuman[];
@@ -64,6 +65,8 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     .filter((n) => Number.isFinite(n) && n > 0);
   const tanggal = String(formData.get("tanggal") ?? "").trim();
   const keterangan = String(formData.get("keterangan") ?? "").trim();
+  const deadlineHariRaw = String(formData.get("deadline_hari") ?? "").trim();
+  const deadlineHari = deadlineHariRaw ? Math.round(Number(deadlineHariRaw)) : null;
 
   if (!siswaId || jenisIds.length === 0) return { ok: false, error: "Siswa dan jenis pelanggaran wajib dipilih." };
 
@@ -95,6 +98,12 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
   // Tahap peringatan (tahap pertama) tidak perlu bukti; tahap kedua dst perlu.
   const perluBukti = perluBuktiUntukPoin(totalPoin, tahapList2);
 
+  if (perluBukti) {
+    if (!deadlineHari || !Number.isFinite(deadlineHari) || deadlineHari <= 0) {
+      return { ok: false, error: "Pelanggaran ini perlu bukti; isi deadline (hari) yang wajib." };
+    }
+  }
+
   const kelasNama = (siswa.kelas as unknown as { nama: string } | null)?.nama ?? null;
 
   const payload: Record<string, unknown> = {
@@ -112,6 +121,13 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     dicatat_oleh: petugas,
   };
   if (tanggal) payload.tanggal = tanggal;
+  if (perluBukti && deadlineHari) {
+    payload.deadline_hari = deadlineHari;
+    const base = tanggal ? new Date(tanggal) : new Date();
+    const dl = new Date(base);
+    dl.setDate(dl.getDate() + deadlineHari);
+    payload.deadline = dl.toISOString().slice(0, 10);
+  }
 
   const { error } = await supabase.from("pelanggaran").insert(payload);
   if (error) {
@@ -305,4 +321,98 @@ export async function hapusTahap(formData: FormData): Promise<ActionResult> {
   await syncHukumanBelum();
   revalidatePath("/pelanggaran");
   return { ok: true };
+}
+
+export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { jumlah?: number }> {
+  const supabase = getSupabase();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: expired, error: eErr } = await supabase
+    .from("pelanggaran")
+    .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, siswa(sangga_id)")
+    .lte("deadline", today)
+    .neq("bukti_status", "selesai")
+    .is("sangga_propagated_at", null);
+
+  if (eErr) {
+    console.error("prosesDeadlineSangga load error:", eErr);
+    return { ok: false, error: "Gagal memuat data deadline." };
+  }
+
+  const { data: tahapList } = await supabase
+    .from("tahap_hukuman")
+    .select("id, min_poin, hukuman")
+    .order("min_poin", { ascending: true });
+  const tahap = (tahapList ?? []) as TahapHukuman[];
+
+  let jumlah = 0;
+  for (const r of expired ?? []) {
+    const sanggaId = (r.siswa as unknown as { sangga_id: number | null } | null)?.sangga_id;
+    if (!sanggaId) {
+      await supabase.from("pelanggaran").update({ sangga_propagated_at: new Date().toISOString() }).eq("id", r.id);
+      continue;
+    }
+
+    const { data: members } = await supabase
+      .from("siswa")
+      .select("id, nis, nama, kelas(nama)")
+      .eq("sangga_id", sanggaId)
+      .neq("id", r.siswa_id);
+
+    for (const m of members ?? []) {
+      const { data: dup } = await supabase
+        .from("pelanggaran")
+        .select("id")
+        .eq("asal_pelanggaran_id", r.id)
+        .eq("siswa_id", m.id)
+        .maybeSingle();
+      if (dup) continue;
+
+      const { data: prev } = await supabase.from("pelanggaran").select("poin").eq("siswa_id", m.id);
+      const totalPoin = (prev ?? []).reduce((s, x) => s + (x.poin ?? 0), 0) + (r.poin ?? 1);
+      const kelasNama = (m.kelas as unknown as { nama: string } | null)?.nama ?? r.kelas;
+
+      const hari = r.deadline_hari && r.deadline_hari > 0 ? r.deadline_hari : 7;
+      const dl = new Date();
+      dl.setDate(dl.getDate() + hari);
+
+      const payload: Record<string, unknown> = {
+        siswa_id: m.id,
+        nis: m.nis,
+        nama: m.nama,
+        kelas: kelasNama,
+        jenis_nama: "Penugasan Sangga",
+        poin: r.poin ?? 1,
+        total_poin: totalPoin,
+        hukuman: `Penugasan Sangga: ${r.hukuman ?? r.jenis_nama ?? "tugas sangga"}`,
+        perlu_bukti: true,
+        keterangan: `Tugas khusus sangga. Asal: ${r.nama} tidak menyelesaikan tugas tepat waktu.`,
+        dicatat_oleh: "sistem",
+        deadline_hari: hari,
+        deadline: dl.toISOString().slice(0, 10),
+        asal_pelanggaran_id: r.id,
+      };
+
+      const { error: iErr } = await supabase.from("pelanggaran").insert(payload);
+      if (iErr) {
+        console.error("propagasi insert error:", iErr);
+        continue;
+      }
+      jumlah++;
+    }
+
+    await supabase
+      .from("pelanggaran")
+      .update({ sangga_propagated_at: new Date().toISOString() })
+      .eq("id", r.id);
+  }
+
+  revalidatePath("/pelanggaran");
+  return { ok: true, jumlah };
+}
+
+export async function prosesDeadlineSangga(): Promise<ActionResult & { jumlah?: number }> {
+  const petugas = await petugasLogin();
+  if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };
+  return prosesDeadlineSanggaInternal();
 }

@@ -331,6 +331,7 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
     .from("pelanggaran")
     .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, siswa(sangga_id)")
     .eq("perlu_bukti", true)
+    .neq("jenis_nama", "Penugasan Sangga")
     .or(`deadline.lte.${today},deadline.is.null`)
     .neq("bukti_status", "selesai")
     .is("sangga_propagated_at", null)
@@ -372,15 +373,15 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
 
       // Guard anti-double: skip anggota yang sudah punya tugas aktif (belum/menunggu/ditolak)
       // yang overdue, supaya tidak double tugas.
-      // Guard anti-double: skip hanya jika M sudah punya tugas PROPAGASI (asal != null)
-      // yang overdue, supaya tidak double tugas sangga. Tugas asli (asal null) tidak dihitung.
+      // Guard: skip anggota yang sudah punya tugas aktif (belum/menunggu/ditolak) yang overdue,
+      // termasuk tugas asli (sumber) — supaya sumber tidak kena Penugasan Sangga,
+      // dan tidak double tugas. (Sumber otomatis sudah punya tugas sendiri.)
       const { data: existingTask } = await supabase
         .from("pelanggaran")
         .select("id")
         .eq("siswa_id", m.id)
         .eq("perlu_bukti", true)
         .in("bukti_status", ["belum", "menunggu", "ditolak"])
-        .not("asal_pelanggaran_id", "is", null)
         .or(`deadline.lte.${today},deadline.is.null`)
         .limit(1)
         .maybeSingle();

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RefreshControls from "@/components/refresh-controls";
+
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { countUniquePerWeek, formatKelas } from "@/lib/utils";
 
@@ -44,6 +45,8 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <RefreshControls />
       </div>
+
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((c) => (
           <Card key={c.label}>

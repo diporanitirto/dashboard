@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NotifBell from "@/components/notif-bell";
 
 export default function RefreshControls({ intervalSeconds = 15 }: { intervalSeconds?: number }) {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function RefreshControls({ intervalSeconds = 15 }: { intervalSeco
         <RefreshCw className={isPending ? "animate-spin" : undefined} />
         Refresh
       </Button>
+      <NotifBell />
     </div>
   );
 }

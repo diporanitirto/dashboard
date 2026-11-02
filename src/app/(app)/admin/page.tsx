@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
+import PushSubscribe from "@/components/push-subscribe";
 
 export default function AdminPage() {
   const [users, setUsers] = useState<{ username: string; password?: string; created_at: string }[]>([]);
@@ -109,6 +110,18 @@ export default function AdminPage() {
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifikasi Push (Admin)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushSubscribe />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Aktifkan untuk menerima notif saat siswa ngirim bukti tugas atau izin.
+          </p>
         </CardContent>
       </Card>
     </div>

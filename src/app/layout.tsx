@@ -11,6 +11,8 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "DIPORANI | Dashboard",
   description: "Manajemen izin dan pendamping kelas",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "Dashboard Pramuka", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

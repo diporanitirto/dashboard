@@ -7,6 +7,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Basic fetch handler (diperlukan agar PWA bisa di-install)
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
+
 self.addEventListener('push', (event) => {
   let data = { title: 'Notifikasi baru', body: '', url: '/' };
   try {

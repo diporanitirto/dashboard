@@ -45,6 +45,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [q, setQ] = useState("");
   const [kelas, setKelas] = useState("");
   const [status, setStatus] = useState("");
+  const [sort, setSort] = useState<"terbaru" | "belum_dulu" | "deadline">("terbaru");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -59,7 +60,8 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    const statusRank: Record<string, number> = { belum: 0, ditolak: 1, menunggu: 2, selesai: 3 };
+    const list = rows.filter((r) => {
       if (kelas && r.kelas !== kelas) return false;
       if (status && r.bukti_status !== status) return false;
       if (
@@ -74,7 +76,20 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
         return false;
       return true;
     });
-  }, [rows, q, kelas, status]);
+    const sorted = [...list];
+    if (sort === "belum_dulu") {
+      sorted.sort((a, b) => (statusRank[a.bukti_status] ?? 9) - (statusRank[b.bukti_status] ?? 9));
+    } else if (sort === "deadline") {
+      sorted.sort((a, b) => {
+        const da = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+        const db = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+        return da - db;
+      });
+    } else {
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    return sorted;
+  }, [rows, q, kelas, status, sort]);
 
   const menungguCount = useMemo(
     () => rows.filter((r) => r.perlu_bukti && r.bukti_status === "menunggu").length,
@@ -163,7 +178,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
       </CardHeader>
       <CardContent>
         {/* Filter */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -196,6 +211,16 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                 {s === "belum" ? "Belum unggah / Peringatan" : BUKTI_STATUS_INFO[s].label}
               </option>
             ))}
+          </select>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+            className={inputClass}
+            aria-label="Urutkan"
+          >
+            <option value="terbaru">Urutkan: Terbaru</option>
+            <option value="belum_dulu">Urutkan: Belum kirim dulu</option>
+            <option value="deadline">Urutkan: Deadline terdekat</option>
           </select>
         </div>
 

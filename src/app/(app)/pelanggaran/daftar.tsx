@@ -306,7 +306,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                           )}
                           {r.asal_pelanggaran_id && (
                             <div className="col-span-2 sm:col-span-3">
-                              <Info label="Sumber" value="Tugas sangga otomatis (deadline asal lewat)" />
+                              <Info label="Sumber" value="Tugas sangga otomatis (deadline lewat bosku)" />
                             </div>
                           )}
                           {r.keterangan && (

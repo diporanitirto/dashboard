@@ -111,6 +111,7 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     perlu_bukti: perluBukti,
     keterangan: keterangan || null,
     dicatat_oleh: petugas,
+    generasi: 1,
   };
   if (tanggal) payload.tanggal = tanggal;
   if (perluBukti) {
@@ -324,13 +325,12 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
 
   const { data: expired, error: eErr } = await supabase
     .from("pelanggaran")
-    .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, siswa(sangga_id)")
+    .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, generasi, siswa(sangga_id)")
     .eq("perlu_bukti", true)
-    .neq("jenis_nama", "Penugasan Sangga")
+    .lt("generasi", 3)
     .or(`deadline.lte.${today},deadline.is.null`)
     .neq("bukti_status", "selesai")
-    .is("sangga_propagated_at", null)
-    .is("asal_pelanggaran_id", null);
+    .is("sangga_propagated_at", null);
 
   if (eErr) {
     console.error("prosesDeadlineSangga load error:", eErr);
@@ -386,25 +386,32 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
       const totalPoin = (prev ?? []).reduce((s, x) => s + (x.poin ?? 0), 0) + (r.poin ?? 1);
       const kelasNama = (m.kelas as unknown as { nama: string } | null)?.nama ?? r.kelas;
 
-      const hari = r.deadline_hari && r.deadline_hari > 0 ? r.deadline_hari : 7;
-      const dl = new Date();
-      dl.setDate(dl.getDate() + hari);
-
+      const hari = 7; // deadline otomatis Kamis depan? pakai next Thursday
+      const base = new Date();
+      const day = base.getDay();
+      let diff = (4 - day + 7) % 7;
+      if (diff === 0) diff = 7;
+      const dl = new Date(base);
+      dl.setDate(dl.getDate() + diff);
+      const newGenerasi = (r.generasi ?? 1) + 1;
+      const isEskalasi = newGenerasi >= 3;
+      const label = isEskalasi ? "Eskalasi Sangga" : "Penugasan Sangga";
       const payload: Record<string, unknown> = {
         siswa_id: m.id,
         nis: m.nis,
         nama: m.nama,
         kelas: kelasNama,
-        jenis_nama: "Penugasan Sangga",
+        jenis_nama: label,
         poin: r.poin ?? 1,
         total_poin: totalPoin,
-        hukuman: `Penugasan Sangga: ${r.hukuman ?? r.jenis_nama ?? "tugas sangga"}`,
+        hukuman: `${label}: ${r.hukuman ?? r.jenis_nama ?? "tugas sangga"}`,
         perlu_bukti: true,
-        keterangan: `Tugas khusus sangga. Asal: ${r.nama} tidak menyelesaikan tugas tepat waktu.`,
+        keterangan: `Tugas khusus sangga (level ${newGenerasi}). Asal: ${r.nama} tidak menyelesaikan tugas tepat waktu.`,
         dicatat_oleh: "sistem",
-        deadline_hari: hari,
+        deadline_hari: diff,
         deadline: dl.toISOString().slice(0, 10),
         asal_pelanggaran_id: r.id,
+        generasi: newGenerasi,
       };
 
       const { error: iErr } = await supabase.from("pelanggaran").insert(payload);

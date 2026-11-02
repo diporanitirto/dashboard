@@ -50,6 +50,7 @@ export interface PelanggaranRow {
   deadline_hari: number | null;
   sangga_propagated_at: string | null;
   asal_pelanggaran_id: string | null;
+  generasi: number | null;
 }
 
 export interface SiswaOption {

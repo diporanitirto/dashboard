@@ -22,7 +22,7 @@ export default function PushSubscribe() {
       setStatus("Browser tidak mendukung notifikasi push.");
       return;
     }
-    navigator.serviceWorker.register("/sw.js").then(async (reg) => {
+    navigator.serviceWorker.register("/sw-v2.js").then(async (reg) => {
       const sub = await reg.pushManager.getSubscription();
       setStatus(sub ? "Notifikasi aktif." : "Notifikasi belum aktif.");
     }).catch(() => setStatus("Gagal memuat service worker."));

@@ -1,14 +1,22 @@
 {
+  "id": "/",
   "name": "Dashboard Pramuka DIPORANI",
   "short_name": "Dashboard Pramuka",
   "description": "Dashboard admin pramuka: pelanggaran, izin, rekap.",
+  "lang": "id",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#7c3f1d",
   "orientation": "portrait",
+  "categories": ["education", "productivity"],
   "icons": [
-    { "src": "/icons-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

@@ -330,7 +330,8 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
   const { data: expired, error: eErr } = await supabase
     .from("pelanggaran")
     .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, siswa(sangga_id)")
-    .lte("deadline", today)
+    .eq("perlu_bukti", true)
+    .or(`deadline.lte.${today},deadline.is.null`)
     .neq("bukti_status", "selesai")
     .is("sangga_propagated_at", null)
     .is("asal_pelanggaran_id", null);
@@ -368,6 +369,22 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
         .eq("siswa_id", m.id)
         .maybeSingle();
       if (dup) continue;
+
+      // Guard anti-double: skip anggota yang sudah punya tugas aktif (belum/menunggu/ditolak)
+      // yang overdue, supaya tidak double tugas.
+      // Guard anti-double: skip hanya jika M sudah punya tugas PROPAGASI (asal != null)
+      // yang overdue, supaya tidak double tugas sangga. Tugas asli (asal null) tidak dihitung.
+      const { data: existingTask } = await supabase
+        .from("pelanggaran")
+        .select("id")
+        .eq("siswa_id", m.id)
+        .eq("perlu_bukti", true)
+        .in("bukti_status", ["belum", "menunggu", "ditolak"])
+        .not("asal_pelanggaran_id", "is", null)
+        .or(`deadline.lte.${today},deadline.is.null`)
+        .limit(1)
+        .maybeSingle();
+      if (existingTask) continue;
 
       const { data: prev } = await supabase.from("pelanggaran").select("poin").eq("siswa_id", m.id);
       const totalPoin = (prev ?? []).reduce((s, x) => s + (x.poin ?? 0), 0) + (r.poin ?? 1);

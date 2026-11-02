@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { notify } from "@/components/notifier";
 import {
@@ -51,7 +51,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [rejectNote, setRejectNote] = useState("");
   const [pending, startTransition] = useTransition();
   const [prosesMsg, setProsesMsg] = useState<string | null>(null);
-  const [prosesModalOpen, setProsesModalOpen] = useState(false);
+
 
   const kelasOptions = useMemo(
     () => [...new Set(rows.map((r) => r.kelas).filter(Boolean))].sort() as string[],
@@ -86,20 +86,31 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
     return sorted;
   }, [rows, q, kelas, status]);
 
-  const sumberProses = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return rows.filter((r) => {
-      if (!r.perlu_bukti) return false;
-      if (r.jenis_nama === 'Penugasan Sangga') return false;
-      if (r.bukti_status === 'selesai') return false;
-      if (r.sangga_propagated_at) return false;
-      if (r.asal_pelanggaran_id) return false;
-      const dl = r.deadline;
-      if (dl && dl > today) return false;
-      return true;
-    });
-  }, [rows]);
-  const menungguCount = useMemo(
+
+
+  // Auto-trigger proses deadline sangga saat halaman dibuka (tanpa klik).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/cron/proses-deadline');
+        const data = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (data?.ok) {
+          setProsesMsg(
+            data.jumlah > 0
+              ? `Otomatis: ${data.jumlah} tugas sangga dibuat.`
+              : 'Otomatis: tidak ada tugas yang perlu diproses.'
+          );
+        }
+      } catch {
+        // silent
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);  const menungguCount = useMemo(
     () => rows.filter((r) => r.perlu_bukti && r.bukti_status === "menunggu").length,
     [rows]
   );
@@ -174,15 +185,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
               <p className="mt-1 text-xs text-muted-foreground">{prosesMsg}</p>
             )}
           </div>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => setProsesModalOpen(true)}
-            className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
-            title="Buat tugas sangga untuk pelanggaran yang lewat deadline"
-          >
-            Proses Deadline Sangga
-          </button>
+
         </div>
       </CardHeader>
       <CardContent>
@@ -534,65 +537,6 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
       </CardContent>
     </Card>
 
-    {prosesModalOpen && (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-scoutBrown-900/60 p-4"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="w-full max-w-lg rounded-2xl border border-scoutBrown-200 bg-white p-5 shadow-xl">
-          <h3 className="text-base font-bold text-scoutBrown-900">Konfirmasi proses deadline sangga</h3>
-          <p className="mt-1 text-xs text-scoutBrown-600">
-            Tugas yang lewat deadline (atau tanpa deadline) akan diproses. Anggota sangga yang belum punya
-            tugas aktif akan otomatis mendapat "Penugasan Sangga". Yang sudah punya tugas tidak akan
-            double.
-          </p>
-
-          <div className="mt-3 rounded-lg border border-scoutBrown-200 bg-scoutKhaki-50 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-scoutBrown-700">
-              Sumber yang akan diproses ({sumberProses.length})
-            </p>
-            {sumberProses.length === 0 ? (
-              <p className="text-xs text-scoutBrown-600">Tidak ada tugas yang perlu diproses.</p>
-            ) : (
-              <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-scoutBrown-800">
-                {sumberProses.map((r) => (
-                  <li key={r.id} className="flex justify-between gap-3">
-                    <span className="truncate">
-                      {r.nama} ({r.kelas}) — {r.jenis_nama}
-                    </span>
-                    <span className="shrink-0 text-scoutBrown-500">
-                      {r.deadline ?? 'tanpa deadline'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setProsesModalOpen(false)}
-              className="min-h-11 flex-1 rounded-lg border border-scoutBrown-200 bg-scoutBrown-50 px-4 py-2.5 text-sm font-medium text-scoutBrown-600 transition-colors hover:bg-scoutBrown-100"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              disabled={pending || sumberProses.length === 0}
-              onClick={() => {
-                setProsesModalOpen(false);
-                doProsesDeadline();
-              }}
-              className="min-h-11 flex-1 rounded-lg bg-scoutBrown-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-scoutBrown-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {pending ? 'Memproses...' : 'Ya, proses'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   );
 }

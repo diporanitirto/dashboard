@@ -65,8 +65,6 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     .filter((n) => Number.isFinite(n) && n > 0);
   const tanggal = String(formData.get("tanggal") ?? "").trim();
   const keterangan = String(formData.get("keterangan") ?? "").trim();
-  const deadlineHariRaw = String(formData.get("deadline_hari") ?? "").trim();
-  const deadlineHari = deadlineHariRaw ? Math.round(Number(deadlineHariRaw)) : null;
 
   if (!siswaId || jenisIds.length === 0) return { ok: false, error: "Siswa dan jenis pelanggaran wajib dipilih." };
 
@@ -98,12 +96,6 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
   // Tahap peringatan (tahap pertama) tidak perlu bukti; tahap kedua dst perlu.
   const perluBukti = perluBuktiUntukPoin(totalPoin, tahapList2);
 
-  if (perluBukti) {
-    if (!deadlineHari || !Number.isFinite(deadlineHari) || deadlineHari <= 0) {
-      return { ok: false, error: "Pelanggaran ini perlu bukti; isi deadline (hari) yang wajib." };
-    }
-  }
-
   const kelasNama = (siswa.kelas as unknown as { nama: string } | null)?.nama ?? null;
 
   const payload: Record<string, unknown> = {
@@ -121,11 +113,14 @@ export async function catatPelanggaran(formData: FormData): Promise<ActionResult
     dicatat_oleh: petugas,
   };
   if (tanggal) payload.tanggal = tanggal;
-  if (perluBukti && deadlineHari) {
-    payload.deadline_hari = deadlineHari;
-    const base = tanggal ? new Date(tanggal) : new Date();
+  if (perluBukti) {
+    const base = tanggal ? new Date(tanggal + 'T00:00:00') : new Date();
+    const day = base.getDay(); // 0=Min, 4=Kam
+    let diff = (4 - day + 7) % 7;
+    if (diff === 0) diff = 7; // kalau hari Kamis, deadline Kamis depan
     const dl = new Date(base);
-    dl.setDate(dl.getDate() + deadlineHari);
+    dl.setDate(dl.getDate() + diff);
+    payload.deadline_hari = diff;
     payload.deadline = dl.toISOString().slice(0, 10);
   }
 

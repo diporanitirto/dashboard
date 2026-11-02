@@ -332,7 +332,8 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
     .select("id, siswa_id, nis, nama, kelas, jenis_nama, poin, hukuman, perlu_bukti, keterangan, deadline, deadline_hari, bukti_status, siswa(sangga_id)")
     .lte("deadline", today)
     .neq("bukti_status", "selesai")
-    .is("sangga_propagated_at", null);
+    .is("sangga_propagated_at", null)
+    .is("asal_pelanggaran_id", null);
 
   if (eErr) {
     console.error("prosesDeadlineSangga load error:", eErr);

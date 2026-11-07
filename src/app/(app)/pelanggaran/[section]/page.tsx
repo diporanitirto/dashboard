@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import RefreshControls from "@/components/refresh-controls";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import type { JenisPelanggaran, PelanggaranRow, SiswaOption, TahapHukuman } from "@/lib/pelanggaran";
+import type { DeadlineLog, JenisPelanggaran, PelanggaranRow, SiswaOption, TahapHukuman } from "@/lib/pelanggaran";
 import Catat from "../catat";
 import Daftar from "../daftar";
 import Rekap from "../rekap";
@@ -24,11 +24,12 @@ export default async function PelanggaranSectionPage({
   }
 
   const supabase = getSupabase();
-  const [jenisRes, tahapRes, kelasRes, rowsRes] = await Promise.all([
+  const [jenisRes, tahapRes, kelasRes, rowsRes, logRes] = await Promise.all([
     supabase.from("jenis_pelanggaran").select("id, nama, poin, aktif").order("nama"),
     supabase.from("tahap_hukuman").select("id, min_poin, hukuman").order("min_poin"),
     supabase.from("kelas").select("id, nama, siswa(id, nis, nama)").order("nama"),
     supabase.from("pelanggaran").select("*").order("created_at", { ascending: false }),
+    supabase.from("deadline_log").select("*").order("created_at", { ascending: false }),
   ]);
 
   if (rowsRes.error || jenisRes.error || tahapRes.error) {
@@ -53,6 +54,9 @@ export default async function PelanggaranSectionPage({
   const jenis = (jenisRes.data ?? []) as JenisPelanggaran[];
   const tahap = (tahapRes.data ?? []) as TahapHukuman[];
   const rows = (rowsRes.data ?? []) as PelanggaranRow[];
+  // Tabel deadline_log bisa belum ada (sql/15 belum dijalankan); jangan blokir halaman.
+  if (logRes.error) console.warn("deadline_log belum bisa dibaca:", logRes.error.message);
+  const deadlineLogs = (logRes.data ?? []) as DeadlineLog[];
 
   return (
     <div className="space-y-6">
@@ -67,7 +71,7 @@ export default async function PelanggaranSectionPage({
       </div>
 
       {section === "catat" && <Catat jenis={jenis} tahap={tahap} kelas={kelas} siswaList={siswaList} rows={rows} />}
-      {section === "daftar" && <Daftar rows={rows} />}
+      {section === "daftar" && <Daftar rows={rows} deadlineLogs={deadlineLogs} />}
       {section === "rekap" && <Rekap rows={rows} tahap={tahap} />}
       {section === "pengaturan" && <Pengaturan jenis={jenis} tahap={tahap} />}
     </div>

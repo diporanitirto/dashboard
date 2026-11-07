@@ -53,6 +53,18 @@ export interface PelanggaranRow {
   generasi: number | null;
 }
 
+/** Satu baris riwayat perpanjangan deadline (satu baris per tugas yang terdampak). */
+export interface DeadlineLog {
+  id: number;
+  pelanggaran_id: string;
+  deadline_lama: string | null;
+  deadline_baru: string;
+  lingkup: "tugas" | "sangga";
+  alasan: string;
+  oleh: string;
+  created_at: string;
+}
+
 export interface SiswaOption {
   id: number;
   nis: string;

@@ -10,9 +10,10 @@ import {
   formatJam,
   formatTanggal,
   type BuktiStatus,
+  type DeadlineLog,
   type PelanggaranRow,
 } from "@/lib/pelanggaran";
-import { hapusPelanggaran, prosesDeadlineSangga, verifikasiBukti } from "./actions";
+import { hapusPelanggaran, perpanjangDeadline, prosesDeadlineSangga, verifikasiBukti } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
@@ -41,7 +42,48 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
+/** Format tanggal lokal YYYY-MM-DD (hindari pergeseran zona waktu toISOString). */
+const fmtLocalDate = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+/** Parse 'YYYY-MM-DD' sebagai tanggal lokal, bukan UTC. */
+const parseLocalDate = (s: string): Date => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+};
+
+/** Kumpulkan id keluarga tugas: naik ke root lewat asal_pelanggaran_id, lalu turun ke semua turunan. */
+function hitungKeluarga(rows: PelanggaranRow[], id: string): string[] {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  let rootId = id;
+  for (let i = 0; i < 10; i++) {
+    const cur = byId.get(rootId);
+    if (!cur?.asal_pelanggaran_id) break;
+    rootId = cur.asal_pelanggaran_id;
+  }
+  const semua = new Set<string>([rootId]);
+  let frontier = [rootId];
+  for (let i = 0; i < 10 && frontier.length > 0; i++) {
+    const next = rows
+      .filter((r) => r.asal_pelanggaran_id && frontier.includes(r.asal_pelanggaran_id) && !semua.has(r.id))
+      .map((r) => r.id);
+    for (const nid of next) semua.add(nid);
+    frontier = next;
+  }
+  return [...semua];
+}
+
+export default function Daftar({
+  rows,
+  deadlineLogs = [],
+}: {
+  rows: PelanggaranRow[];
+  deadlineLogs?: DeadlineLog[];
+}) {
   const [q, setQ] = useState("");
   const [kelas, setKelas] = useState("");
   const [status, setStatus] = useState("");
@@ -49,6 +91,11 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [perpanjangId, setPerpanjangId] = useState<string | null>(null);
+  const [hariCepat, setHariCepat] = useState<number | null>(7);
+  const [tanggalManual, setTanggalManual] = useState("");
+  const [alasan, setAlasan] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [prosesMsg, setProsesMsg] = useState<string | null>(null);
 
@@ -113,7 +160,45 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
     return () => {
       cancelled = true;
     };
-  }, []);  const menungguCount = useMemo(
+  }, []);
+
+  const logsById = useMemo(() => {
+    const map = new Map<string, DeadlineLog[]>();
+    for (const l of deadlineLogs) {
+      const arr = map.get(l.pelanggaran_id) ?? [];
+      arr.push(l);
+      map.set(l.pelanggaran_id, arr);
+    }
+    return map;
+  }, [deadlineLogs]);
+
+  const perpanjangTarget = useMemo(() => rows.find((r) => r.id === perpanjangId) ?? null, [rows, perpanjangId]);
+  const perpanjangKeluarga = useMemo(() => {
+    if (!perpanjangId) return [];
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return hitungKeluarga(rows, perpanjangId)
+      .map((tid) => byId.get(tid))
+      .filter((r): r is PelanggaranRow => Boolean(r?.perlu_bukti));
+  }, [rows, perpanjangId]);
+
+  const perpanjangFinal = useMemo(() => {
+    if (!perpanjangTarget) return null;
+    let iso: string;
+    if (tanggalManual) {
+      iso = tanggalManual;
+    } else {
+      const base = perpanjangTarget.deadline ? parseLocalDate(perpanjangTarget.deadline) : new Date();
+      const d = new Date(base);
+      d.setDate(base.getDate() + (hariCepat ?? 7));
+      iso = fmtLocalDate(d);
+    }
+    for (const r of perpanjangKeluarga) {
+      if (r.deadline && r.deadline > iso) iso = r.deadline;
+    }
+    return iso;
+  }, [perpanjangTarget, perpanjangKeluarga, tanggalManual, hariCepat]);
+
+  const menungguCount = useMemo(
     () => rows.filter((r) => r.perlu_bukti && r.bukti_status === "menunggu").length,
     [rows]
   );
@@ -136,6 +221,40 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
         setRejectNote("");
       } else {
         notify(res.error ?? "Gagal memperbarui status.");
+      }
+    });
+  };
+
+  const bukaPerpanjang = (row: PelanggaranRow) => {
+    setPerpanjangId(perpanjangId === row.id ? null : row.id);
+    setHariCepat(7);
+    setTanggalManual("");
+    setAlasan("");
+    setFormError(null);
+  };
+
+  const doPerpanjang = (row: PelanggaranRow) => {
+    if (alasan.trim().length < 5) {
+      setFormError(`Alasan minimal 5 karakter (sekarang ${alasan.trim().length}).`);
+      return;
+    }
+    const fd = new FormData();
+    fd.set("id", row.id);
+    if (tanggalManual) fd.set("tanggal", tanggalManual);
+    else fd.set("hari", String(hariCepat ?? 7));
+    fd.set("alasan", alasan);
+
+    startTransition(async () => {
+      setFormError(null);
+      const res = await perpanjangDeadline(fd);
+      if (res.ok) {
+        notify(`Deadline diperpanjang untuk ${res.jumlah ?? 1} tugas.`);
+        setPerpanjangId(null);
+        setAlasan("");
+        setTanggalManual("");
+        setHariCepat(7);
+      } else {
+        setFormError(res.error ?? "Gagal memperpanjang deadline.");
       }
     });
   };
@@ -247,6 +366,7 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                 ? BUKTI_STATUS_INFO[r.bukti_status]
                 : { label: "Peringatan", className: "bg-secondary text-secondary-foreground" };
               const files = daftarBukti(r);
+              const rowLogs = logsById.get(r.id) ?? [];
               return (
                 <div
                   key={r.id}
@@ -322,8 +442,23 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                           {r.deadline && (
                             <Info
                               label="Deadline"
-                              value={`${formatTanggal(r.deadline)}${r.sangga_propagated_at ? " (dipropagasi)" : ""}`}
+                              value={`${formatTanggal(r.deadline)}${r.sangga_propagated_at ? " (dipropagasi)" : ""}${rowLogs.length ? ` · ${rowLogs.length}× diperpanjang` : ""}`}
                             />
+                          )}
+                          {rowLogs.length > 0 && (
+                            <div className="col-span-2 space-y-1 sm:col-span-3">
+                              <p className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                Riwayat perpanjangan ({rowLogs.length})
+                              </p>
+                              <ul className="space-y-0.5">
+                                {rowLogs.map((l) => (
+                                  <li key={l.id} className="text-xs leading-snug text-muted-foreground">
+                                    {l.deadline_lama ? formatTanggal(l.deadline_lama) : "tanpa deadline"} ke{" "}
+                                    {formatTanggal(l.deadline_baru)} · {l.alasan} · {l.oleh}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           )}
                           {r.asal_pelanggaran_id && (
                             <div className="col-span-2 sm:col-span-3">
@@ -488,6 +623,17 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                             Tolak Bukti
                           </button>
                         )}
+                        {r.perlu_bukti && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => bukaPerpanjang(r)}
+                            aria-expanded={perpanjangId === r.id}
+                            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-60"
+                          >
+                            Perpanjang Deadline
+                          </button>
+                        )}
                         <button
                           type="button"
                           disabled={pending}
@@ -497,6 +643,98 @@ export default function Daftar({ rows }: { rows: PelanggaranRow[] }) {
                           Hapus Catatan
                         </button>
                       </div>
+
+                      {perpanjangId === r.id && (
+                        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                          <p className="text-sm font-semibold">Perpanjang deadline</p>
+
+                          <p className="text-xs text-muted-foreground">
+                            Perpanjang ini pengecualian di luar ritme Kamis. Tugas yang diperpanjang ikut
+                            penambahannya; tugas berikutnya tetap memakai interval Kamis.
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {[3, 7, 14].map((h) => {
+                              const aktif = hariCepat === h && !tanggalManual;
+                              return (
+                                <button
+                                  key={h}
+                                  type="button"
+                                  onClick={() => {
+                                    setHariCepat(h);
+                                    setTanggalManual("");
+                                  }}
+                                  aria-pressed={aktif}
+                                  className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+                                    aktif ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent"
+                                  }`}
+                                >
+                                  +{h} hari
+                                </button>
+                              );
+                            })}
+                            <input
+                              type="date"
+                              value={tanggalManual}
+                              min={r.deadline ?? undefined}
+                              onChange={(e) => {
+                                setTanggalManual(e.target.value);
+                                setHariCepat(null);
+                              }}
+                              aria-label="Tanggal deadline baru"
+                              className="rounded-md border bg-background px-3 py-1.5 text-xs outline-none focus:border-ring focus:ring-3 focus:ring-ring/30"
+                            />
+                          </div>
+
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {perpanjangKeluarga.length} tugas (termasuk yang selesai) akan maju ke{" "}
+                            {perpanjangFinal ? formatTanggal(perpanjangFinal) : "-"}.
+                          </p>
+
+                          <textarea
+                            value={alasan}
+                            onChange={(e) => {
+                              setAlasan(e.target.value);
+                              if (formError) setFormError(null);
+                            }}
+                            rows={2}
+                            placeholder="Alasan perpanjangan (wajib), contoh: latihan gabungan di luar kota..."
+                            className={inputClass}
+                          />
+                          <p
+                            className={`text-[0.65rem] ${
+                              alasan.trim().length >= 5 ? "text-muted-foreground" : "text-destructive"
+                            }`}
+                          >
+                            {alasan.trim().length}/5 karakter minimum
+                          </p>
+
+                          {formError && (
+                            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                              {formError}
+                            </p>
+                          )}
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => doPerpanjang(r)}
+                              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-60"
+                            >
+                              {pending ? "Menyimpan..." : "Simpan Perpanjangan"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => setPerpanjangId(null)}
+                              className="rounded-md border px-4 py-2 text-sm text-muted-foreground hover:bg-accent disabled:opacity-60"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {rejectId === r.id && (
                         <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">

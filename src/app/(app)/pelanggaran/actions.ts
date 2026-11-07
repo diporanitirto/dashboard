@@ -188,6 +188,156 @@ export async function hapusPelanggaran(formData: FormData): Promise<ActionResult
   return { ok: true };
 }
 
+/** Format tanggal lokal YYYY-MM-DD (bukan toISOString, biar tidak bergeser zona waktu). */
+function formatTanggalLokal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Parse 'YYYY-MM-DD' sebagai tanggal lokal, bukan UTC. */
+function parseTanggalLokal(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+function diffHari(dari: Date, ke: Date): number {
+  const a = Date.UTC(dari.getFullYear(), dari.getMonth(), dari.getDate());
+  const b = Date.UTC(ke.getFullYear(), ke.getMonth(), ke.getDate());
+  return Math.round((b - a) / 86400000);
+}
+
+/**
+ * Perpanjang deadline tugas pelanggaran (admin/pendamping). Ini pengecualian
+ * di luar ritme Kamis: tugas yang ikut perpanjangan menyesuaikan penambahannya,
+ * sedangkan tugas yang dibuat setelahnya tetap mengikuti interval Kamis depan.
+ * Berlaku untuk seluruh keluarga tugas (naik ke root lewat asal_pelanggaran_id,
+ * lalu turun mengumpulkan sumber, Penugasan Sangga, dan Eskalasi gen 3).
+ * Semua tugas yang perlu bukti ikut maju, termasuk yang sudah selesai.
+ * Keluarga diseragamkan ke tanggal terjauh (max tanggal dipilih, seluruh deadline
+ * keluarga), jadi tidak ada anggota yang mundur.
+ * Yang berubah hanya deadline (+deadline_hari); alasan wajib dan dicatat di deadline_log.
+ */
+export async function perpanjangDeadline(formData: FormData): Promise<ActionResult & { jumlah?: number }> {
+  const petugas = await petugasLogin();
+  if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };
+
+  const id = String(formData.get("id") ?? "");
+  const hari = Number(formData.get("hari") ?? 0);
+  const tanggalManual = String(formData.get("tanggal") ?? "").trim();
+  const alasan = String(formData.get("alasan") ?? "").trim();
+
+  if (!id) return { ok: false, error: "Data tidak valid." };
+  if (alasan.length < 5) return { ok: false, error: "Alasan minimal 5 karakter." };
+
+  const supabase = getSupabase();
+
+  // Periksa tabel log lebih dulu supaya deadline tidak berubah tanpa jejak.
+  const { error: logCheckErr } = await supabase.from("deadline_log").select("id").limit(1);
+  if (logCheckErr) {
+    return { ok: false, error: "Tabel deadline_log belum ada. Jalankan sql/15-perpanjangan-deadline.sql di Supabase." };
+  }
+
+  const { data: row, error: rowErr } = await supabase
+    .from("pelanggaran")
+    .select("id, tanggal, deadline, perlu_bukti")
+    .eq("id", id)
+    .maybeSingle();
+  if (rowErr || !row) return { ok: false, error: "Catatan tidak ditemukan." };
+  if (!row.perlu_bukti) return { ok: false, error: "Tugas ini tidak perlu bukti, tidak ada deadline." };
+
+  const hariIni = new Date();
+  const deadlineLama = row.deadline ? parseTanggalLokal(row.deadline) : null;
+  let target: Date;
+  if (hari > 0) {
+    const base = deadlineLama ?? hariIni;
+    target = new Date(base);
+    target.setDate(base.getDate() + hari);
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(tanggalManual)) {
+    target = parseTanggalLokal(tanggalManual);
+  } else {
+    return { ok: false, error: "Pilih perpanjangan cepat atau tanggal manual." };
+  }
+
+  if (deadlineLama && target <= deadlineLama) {
+    return { ok: false, error: "Tanggal baru harus setelah deadline sekarang." };
+  }
+  if (!deadlineLama && diffHari(hariIni, target) < 0) {
+    return { ok: false, error: "Tanggal baru tidak boleh di masa lalu." };
+  }
+
+  let rootId = id;
+  for (let i = 0; i < 10; i++) {
+    const { data: cur } = await supabase
+      .from("pelanggaran")
+      .select("id, asal_pelanggaran_id")
+      .eq("id", rootId)
+      .maybeSingle();
+    if (!cur?.asal_pelanggaran_id) break;
+    rootId = cur.asal_pelanggaran_id;
+  }
+  const semua = new Set<string>([rootId]);
+  let frontier = [rootId];
+  for (let i = 0; i < 10 && frontier.length > 0; i++) {
+    const { data: anak } = await supabase
+      .from("pelanggaran")
+      .select("id")
+      .in("asal_pelanggaran_id", frontier);
+    const next = (anak ?? []).map((a) => a.id).filter((aid) => !semua.has(aid));
+    for (const aid of next) semua.add(aid);
+    frontier = next;
+  }
+  const ids = [...semua];
+
+  const { data: targets, error: targetErr } = await supabase
+    .from("pelanggaran")
+    .select("id, tanggal, deadline, perlu_bukti")
+    .in("id", ids);
+  if (targetErr) {
+    console.error("perpanjangDeadline load error:", targetErr);
+    return { ok: false, error: "Gagal memuat tugas terdampak." };
+  }
+  const layak = (targets ?? []).filter((t) => t.perlu_bukti);
+  if (layak.length === 0) return { ok: false, error: "Tidak ada tugas yang perlu bukti di keluarga ini." };
+
+  // Seragamkan ke tanggal terjauh keluarga: tidak ada anggota yang mundur.
+  const targetIso = formatTanggalLokal(target);
+  let finalIso = targetIso;
+  for (const t of layak) {
+    if (t.deadline && t.deadline > finalIso) finalIso = t.deadline;
+  }
+  const finalDate = parseTanggalLokal(finalIso);
+
+  for (const t of layak) {
+    const { error: uErr } = await supabase
+      .from("pelanggaran")
+      .update({ deadline: finalIso, deadline_hari: diffHari(parseTanggalLokal(t.tanggal), finalDate) })
+      .eq("id", t.id);
+    if (uErr) {
+      console.error("perpanjangDeadline update error:", t.id, uErr);
+      return { ok: false, error: "Gagal memperbarui deadline. Cek catatan yang berubah sebelum mencoba lagi." };
+    }
+  }
+  const logs = layak.map((t) => ({
+    pelanggaran_id: t.id,
+    deadline_lama: t.deadline,
+    deadline_baru: finalIso,
+    lingkup: "sangga",
+    alasan,
+    oleh: petugas,
+  }));
+  const { error: logErr } = await supabase.from("deadline_log").insert(logs);
+  if (logErr) {
+    console.error("perpanjangDeadline log error:", logErr);
+    revalidatePath("/pelanggaran");
+    return { ok: false, error: "Deadline sudah berubah, tetapi log gagal tersimpan. Cek Supabase." };
+  }
+
+  revalidatePath("/pelanggaran");
+  return { ok: true, jumlah: layak.length };
+}
+
 export async function tambahJenis(formData: FormData): Promise<ActionResult> {
   const petugas = await petugasLogin();
   if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };

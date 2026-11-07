@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/proses-deadline",
-      "schedule": "0 20 * * 3"
+      "schedule": "0 8 * * 4"
     }
   ]
 }

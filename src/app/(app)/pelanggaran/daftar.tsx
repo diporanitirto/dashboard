@@ -13,7 +13,7 @@ import {
   type DeadlineLog,
   type PelanggaranRow,
 } from "@/lib/pelanggaran";
-import { hapusPelanggaran, perpanjangDeadline, prosesDeadlineSangga, verifikasiBukti } from "./actions";
+import { hapusPelanggaran, perpanjangDeadline, verifikasiBukti } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:opacity-60";
@@ -54,6 +54,15 @@ const fmtLocalDate = (d: Date): string => {
 const parseLocalDate = (s: string): Date => {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
+};
+
+/** Selisih hari antara dua tanggal ISO YYYY-MM-DD. */
+const diffHariLokal = (dari: string, ke: string): number => {
+  const utc = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return Date.UTC(y, (m ?? 1) - 1, d ?? 1);
+  };
+  return Math.round((utc(ke) - utc(dari)) / 86400000);
 };
 
 /** Kumpulkan id keluarga tugas: naik ke root lewat asal_pelanggaran_id, lalu turun ke semua turunan. */
@@ -259,20 +268,6 @@ export default function Daftar({
     });
   };
 
-  const doProsesDeadline = () => {
-    startTransition(async () => {
-      setProsesMsg(null);
-      const res = await prosesDeadlineSangga();
-      if (res.ok) {
-        setProsesMsg(`Selesai. ${res.jumlah ?? 0} tugas sangga dibuat.`);
-        notify(`Proses deadline selesai. ${res.jumlah ?? 0} tugas sangga dibuat.`);
-      } else {
-        setProsesMsg(res.error ?? "Gagal memproses.");
-        notify(res.error ?? "Gagal memproses.");
-      }
-    });
-  };
-
   const doHapus = (row: PelanggaranRow) => {
     if (!confirm(`Hapus catatan "${row.jenis_nama}" milik ${row.nama}? Poin akan hilang dari rekap.`)) {
       return;
@@ -295,20 +290,13 @@ export default function Daftar({
     <>
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Daftar Pelanggaran & Verifikasi Tugas</CardTitle>
-            {menungguCount > 0 && (
-              <p className="mt-1 text-xs text-amber-700">
-                {menungguCount} tugas menunggu verifikasi
-              </p>
-            )}
-            {prosesMsg && (
-              <p className="mt-1 text-xs text-muted-foreground">{prosesMsg}</p>
-            )}
-          </div>
-
-        </div>
+        <CardTitle>Daftar Pelanggaran & Verifikasi Tugas</CardTitle>
+        {menungguCount > 0 && (
+          <p className="text-xs font-medium text-amber-700">
+            {menungguCount} tugas menunggu verifikasi
+          </p>
+        )}
+        {prosesMsg && <p className="text-xs text-muted-foreground">{prosesMsg}</p>}
       </CardHeader>
       <CardContent>
         {/* Filter */}
@@ -442,19 +430,30 @@ export default function Daftar({
                           {r.deadline && (
                             <Info
                               label="Deadline"
-                              value={`${formatTanggal(r.deadline)}${r.sangga_propagated_at ? " (dipropagasi)" : ""}${rowLogs.length ? ` · ${rowLogs.length}× diperpanjang` : ""}`}
+                              value={`${formatTanggal(r.deadline)}${r.sangga_propagated_at ? " (dipropagasi)" : ""}`}
                             />
                           )}
                           {rowLogs.length > 0 && (
-                            <div className="col-span-2 space-y-1 sm:col-span-3">
+                            <div className="col-span-2 space-y-1.5 sm:col-span-3">
                               <p className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">
                                 Riwayat perpanjangan ({rowLogs.length})
                               </p>
-                              <ul className="space-y-0.5">
+                              <ul className="space-y-1.5">
                                 {rowLogs.map((l) => (
-                                  <li key={l.id} className="text-xs leading-snug text-muted-foreground">
-                                    {l.deadline_lama ? formatTanggal(l.deadline_lama) : "tanpa deadline"} ke{" "}
-                                    {formatTanggal(l.deadline_baru)} · {l.alasan} · {l.oleh}
+                                  <li
+                                    key={l.id}
+                                    className="rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5 text-xs leading-snug"
+                                  >
+                                    <span className="font-medium text-foreground">
+                                      {l.deadline_lama ? formatTanggal(l.deadline_lama) : "tanpa deadline"} →{" "}
+                                      {formatTanggal(l.deadline_baru)}
+                                      {l.deadline_lama
+                                        ? ` (+${diffHariLokal(l.deadline_lama, l.deadline_baru)} hari)`
+                                        : ""}
+                                    </span>
+                                    <span className="mt-0.5 block text-muted-foreground">
+                                      {l.alasan} · oleh {l.oleh}
+                                    </span>
                                   </li>
                                 ))}
                               </ul>
@@ -649,8 +648,8 @@ export default function Daftar({
                           <p className="text-sm font-semibold">Perpanjang deadline</p>
 
                           <p className="text-xs text-muted-foreground">
-                            Perpanjang ini pengecualian di luar ritme Kamis. Tugas yang diperpanjang ikut
-                            penambahannya; tugas berikutnya tetap memakai interval Kamis.
+                            Pengecualian di luar ritme Kamis: tugas yang diperpanjang ikut penambahannya;
+                            tugas berikutnya tetap memakai interval Kamis.
                           </p>
 
                           <div className="flex flex-wrap items-center gap-2">
@@ -665,7 +664,7 @@ export default function Daftar({
                                     setTanggalManual("");
                                   }}
                                   aria-pressed={aktif}
-                                  className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+                                  className={`min-h-11 rounded-md border px-3.5 py-2 text-xs font-medium transition-colors ${
                                     aktif ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent"
                                   }`}
                                 >
@@ -686,9 +685,12 @@ export default function Daftar({
                             />
                           </div>
 
-                          <p className="text-xs font-medium text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {perpanjangKeluarga.length} tugas (termasuk yang selesai) akan maju ke{" "}
-                            {perpanjangFinal ? formatTanggal(perpanjangFinal) : "-"}.
+                            <span className="font-semibold text-foreground">
+                              {perpanjangFinal ? formatTanggal(perpanjangFinal) : "-"}
+                            </span>
+                            .
                           </p>
 
                           <textarea

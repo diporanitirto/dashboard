@@ -198,7 +198,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                           setQuery("");
                           setTambahTerbuka(false);
                         }}
-                        className="flex min-h-11 w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        className="flex min-h-11 w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         <span className="truncate font-medium">{s.nama}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
@@ -207,17 +207,18 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                       </button>
                     ))
                   )}
-                  {query.trim().length >= 2 && !tambahTerbuka && (
-                    <button
-                      type="button"
-                      onClick={() => setTambahTerbuka(true)}
-                      className="flex min-h-11 w-full items-center border-t px-3 py-2 text-left text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      <Plus className="mr-1.5 h-3.5 w-3.5" />
-                      {`Tambah siswa baru "${query.trim()}"`}
-                    </button>
-                  )}
                 </div>
+                {query.trim().length >= 2 && !tambahTerbuka && (
+                  <button
+                    type="button"
+                    onClick={() => setTambahTerbuka(true)}
+                    aria-label={`Tambah siswa baru "${query.trim()}"`}
+                    title={`Tambah siswa baru "${query.trim()}"`}
+                    className="mt-2 flex h-11 w-11 items-center justify-center rounded-lg border border-primary/40 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                )}
                 {tambahTerbuka && (
                   <SiswaForm
                     kelasList={kelas}
@@ -262,7 +263,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                           key={j.id}
                           type="button"
                           onClick={() => toggleJenis(j.id)}
-                          className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                          className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             selected
                               ? "border-primary bg-primary/10"
                               : "hover:bg-accent/60"
@@ -337,8 +338,8 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
 
             {perluBuktiPrediksi && (
               <p className="text-[0.7rem] text-muted-foreground">
-                Deadline otomatis ditetapkan ke Kamis berikutnya. Jika tugas tidak selesai sampai
-                deadline, anggota sangga lain otomatis mendapat tugas yang sama.
+                Deadline otomatis Kamis depan (15.00 WIB). Kalau belum selesai sampai deadline, sangga
+                satu kelompok ikut mendapat tugas yang sama.
               </p>
             )}
           </div>
@@ -349,9 +350,8 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
               {siswa ? (
                 <div className="space-y-1">
                   <p>
-                    <span className="font-semibold">{siswa.nama}</span> ({siswa.kelas}) punya{" "}
-                    {catatanSiswa.length} catatan, total saat ini{" "}
-                    <span className="font-semibold">{totalSekarang} catatan</span>
+                    <span className="font-semibold">{siswa.nama}</span> ({siswa.kelas}) •{" "}
+                    <span className="font-semibold">{catatanSiswa.length} catatan</span> ({totalSekarang} poin)
                   </p>
                   {selectedJenisList.length > 0 && (
                     <p className="text-xs text-muted-foreground">
@@ -359,7 +359,7 @@ export default function Catat({ jenis, tahap, kelas, siswaList, rows }: Props) {
                     </p>
                   )}
                   <p>
-                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} catatan</span>. Hukuman
+                    Setelah dicatat: <span className="font-semibold">{totalPrediksi} poin</span>. Hukuman
                     berlaku:{" "}
                     <span className="font-semibold">{hukumanPrediksi?.hukuman ?? "tidak ada"}</span>
                     {hukumanPrediksi && !perluBuktiPrediksi && " (tanpa bukti)"}

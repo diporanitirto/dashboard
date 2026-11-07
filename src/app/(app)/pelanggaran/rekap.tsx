@@ -61,19 +61,25 @@ export default function Rekap({ rows, tahap }: Props) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Catatan</p>
-          <p className="text-2xl font-bold">{rows.length}</p>
+          <p className="text-2xl font-bold tabular-nums">{rows.length}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Poin</p>
-          <p className="text-2xl font-bold">{totalPoin}</p>
+          <p className="text-2xl font-bold tabular-nums">{totalPoin}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Siswa Terlibat</p>
-          <p className="text-2xl font-bold">{jumlahSiswa}</p>
+          <p className="text-2xl font-bold tabular-nums">{jumlahSiswa}</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
+        <div
+          className={`rounded-xl border p-4 ${
+            jumlahMenunggu > 0 ? "border-amber-300 bg-amber-50" : "bg-card"
+          }`}
+        >
           <p className="text-xs text-muted-foreground">Bukti Menunggu</p>
-          <p className="text-2xl font-bold">{jumlahMenunggu}</p>
+          <p className={`text-2xl font-bold tabular-nums ${jumlahMenunggu > 0 ? "text-amber-700" : ""}`}>
+            {jumlahMenunggu}
+          </p>
         </div>
       </div>
 
@@ -135,10 +141,10 @@ export default function Rekap({ rows, tahap }: Props) {
                   <th className="py-2 pr-3">Nama</th>
                   <th className="py-2 pr-3">NIS</th>
                   <th className="py-2 pr-3">Kelas</th>
-                  <th className="py-2 pr-3 text-right">Catatan</th>
-                  <th className="py-2 pr-3 text-right">Total Poin</th>
+                  <th className="py-2 pr-3 text-right tabular-nums">Catatan</th>
+                  <th className="py-2 pr-3 text-right tabular-nums">Total Poin</th>
                   <th className="py-2 pr-3">Hukuman Berlaku</th>
-                  <th className="py-2 text-right">Menunggu</th>
+                  <th className="py-2 text-right tabular-nums">Menunggu</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,10 +155,10 @@ export default function Rekap({ rows, tahap }: Props) {
                       <td className="py-2 pr-3 font-medium">{s.nama}</td>
                       <td className="py-2 pr-3 text-muted-foreground">{s.nis ?? "-"}</td>
                       <td className="py-2 pr-3">{s.kelas ?? "-"}</td>
-                      <td className="py-2 pr-3 text-right">{s.jumlah}</td>
-                      <td className="py-2 pr-3 text-right font-semibold">{s.total}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{s.jumlah}</td>
+                      <td className="py-2 pr-3 text-right font-semibold tabular-nums">{s.total}</td>
                       <td className="py-2 pr-3">{hukuman?.hukuman ?? "-"}</td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 text-right tabular-nums">
                         {s.menunggu > 0 ? (
                           <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                             {s.menunggu}
@@ -198,17 +204,17 @@ export default function Rekap({ rows, tahap }: Props) {
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="py-2 pr-3">Kelas</th>
-                  <th className="py-2 pr-3 text-right">Siswa Terlibat</th>
-                  <th className="py-2 pr-3 text-right">Catatan</th>
-                  <th className="py-2 text-right">Total Poin</th>
+                  <th className="py-2 pr-3 text-right tabular-nums">Siswa Terlibat</th>
+                  <th className="py-2 pr-3 text-right tabular-nums">Catatan</th>
+                  <th className="py-2 text-right tabular-nums">Total Poin</th>
                 </tr>
               </thead>
               <tbody>
                 {perKelas.map((k) => (
                   <tr key={k.kelas} className="border-b last:border-0">
                     <td className="py-2 pr-3 font-medium">{k.kelas}</td>
-                    <td className="py-2 pr-3 text-right">{k.siswa.size}</td>
-                    <td className="py-2 pr-3 text-right">{k.jumlahCatatan}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{k.siswa.size}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{k.jumlahCatatan}</td>
                     <td className="py-2 text-right font-semibold">{k.totalPoin}</td>
                   </tr>
                 ))}

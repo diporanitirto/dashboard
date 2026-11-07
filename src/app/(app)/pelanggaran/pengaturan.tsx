@@ -67,7 +67,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           type="button"
           disabled={pending || !dirty}
           onClick={() => simpan(j.aktif)}
-          className="rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+          className="rounded-md bg-primary min-h-9 px-2.5 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
         >
           Simpan
         </button>
@@ -76,7 +76,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           disabled={pending}
           onClick={() => simpan(!j.aktif)}
           title={j.aktif ? "Klik untuk nonaktifkan" : "Klik untuk aktifkan"}
-          className={`rounded-md border px-2 py-1.5 text-xs font-medium disabled:opacity-40 ${
+          className={`rounded-md border min-h-9 px-2.5 py-2 text-xs font-medium disabled:opacity-40 ${
             j.aktif ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-muted-foreground"
           }`}
         >
@@ -86,7 +86,7 @@ function JenisRow({ j }: { j: JenisPelanggaran }) {
           type="button"
           disabled={pending}
           onClick={hapus}
-          className="rounded-md border px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
+          className="rounded-md border min-h-9 px-2.5 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
         >
           Hapus
         </button>
@@ -149,7 +149,7 @@ function TahapRow({ t }: { t: TahapHukuman }) {
           type="button"
           disabled={pending || !dirty}
           onClick={simpan}
-          className="rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
+          className="rounded-md bg-primary min-h-9 px-2.5 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40"
         >
           Simpan
         </button>
@@ -157,7 +157,7 @@ function TahapRow({ t }: { t: TahapHukuman }) {
           type="button"
           disabled={pending}
           onClick={hapus}
-          className="rounded-md border px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
+          className="rounded-md border min-h-9 px-2.5 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-40"
         >
           Hapus
         </button>

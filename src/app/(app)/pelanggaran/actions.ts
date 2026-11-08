@@ -487,12 +487,6 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
     return { ok: false, error: "Gagal memuat data deadline." };
   }
 
-  const { data: tahapList } = await supabase
-    .from("tahap_hukuman")
-    .select("id, min_poin, hukuman")
-    .order("min_poin", { ascending: true });
-  const tahap = (tahapList ?? []) as TahapHukuman[];
-
   let jumlah = 0;
   for (const r of expired ?? []) {
     const sanggaId = (r.siswa as unknown as { sangga_id: number | null } | null)?.sangga_id;
@@ -536,7 +530,6 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
       const totalPoin = (prev ?? []).reduce((s, x) => s + (x.poin ?? 0), 0) + (r.poin ?? 1);
       const kelasNama = (m.kelas as unknown as { nama: string } | null)?.nama ?? r.kelas;
 
-      const hari = 7; // deadline otomatis Kamis depan? pakai next Thursday
       const base = new Date();
       const day = base.getDay();
       let diff = (4 - day + 7) % 7;
@@ -580,10 +573,4 @@ export async function prosesDeadlineSanggaInternal(): Promise<ActionResult & { j
 
   revalidatePath("/pelanggaran");
   return { ok: true, jumlah };
-}
-
-export async function prosesDeadlineSangga(): Promise<ActionResult & { jumlah?: number }> {
-  const petugas = await petugasLogin();
-  if (!petugas) return { ok: false, error: "Sesi habis. Login ulang dulu." };
-  return prosesDeadlineSanggaInternal();
 }

@@ -47,16 +47,16 @@ export default async function RekapPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Rekap Izin</h1>
           <p className="text-sm text-muted-foreground">Periode {periode} · izin bulan lalu otomatis diarsip, hitungan minggu reset tiap Senin</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <a
             href="/api/rekap/export"
             download
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+            className="whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent"
           >
             Download Excel
           </a>

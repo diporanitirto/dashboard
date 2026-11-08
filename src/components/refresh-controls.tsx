@@ -33,9 +33,15 @@ export default function RefreshControls({ intervalSeconds = 15 }: { intervalSeco
           {lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </span>
       )}
-      <Button variant="outline" size="sm" onClick={refresh} disabled={isPending}>
+      <Button
+        variant="outline"
+        size="icon-lg"
+        onClick={refresh}
+        disabled={isPending}
+        aria-label="Refresh data"
+        title="Refresh data"
+      >
         <RefreshCw className={isPending ? "animate-spin" : undefined} />
-        Refresh
       </Button>
       <NotifBell />
     </div>
